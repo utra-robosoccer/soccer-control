@@ -1,54 +1,140 @@
-step_length = 15;
-step_height = 2;
-speed = 15;
+step_height = 0.02;
 swing_prop = 0.25;
+airtime = 0.5;
 update_interval = 0.001;
-body_height = 19;
-num_steps = 6;
-a = [8.9 8.25 8.06];
+init_body_height = 0.15;
+duration = 6;
+a = [0.089 0.08253 0.037];
 
-stride_duration = round(step_length / speed / (1-swing_prop), 3);
-t_swing = 0:update_interval:round(swing_prop*stride_duration, 3)-update_interval;
-t_stance = 0:update_interval:round((1-swing_prop)*stride_duration, 3)-update_interval;
+% Define path
+start = Pose(0, 0, 0, -0.07);
+final = Pose(1, 0, 0, 0.2);
+body_traj = Trajectory.PlannedPath(duration, start, final).x;
+stepl = Footstep(0, Foot.Left);
+stepr = Footstep(0, Foot.Right);
 
-bez_y_sw = new_bezier_order4(0, 0, 0, 0, step_height, t_swing);
-bez_x_sw = new_bezier_order4(-step_length/2, step_length/2, -speed, -speed, 0, t_swing);
-bez_y_st = new_bezier_order4(0, 0, 0, 0, 0, t_stance);
-bez_x_st = new_bezier_order4(step_length/2, -step_length/2, -speed, -speed, 0, t_stance);
-left_traj_x = [bez_x_st(floor(end/2)+1:end) bez_x_sw bez_x_st(1:floor(end/2))];
-left_traj_y = [bez_y_st(floor(end/2)+1:end) bez_y_sw bez_y_st(1:floor(end/2))] - body_height;
-right_traj_x = [bez_x_sw(floor(end/2)+1:end) bez_x_st bez_x_sw(1:floor(end/2))];
-right_traj_y = [bez_y_sw(floor(end/2)+1:end) bez_y_st bez_y_sw(1:floor(end/2))] - body_height;
-psi_traj = ones(1, length(left_traj_x))*-pi/2;
+% Make footsteps
+footsteps = Footstep.generateFootsteps(body_traj, stepl, stepr);
+left_steps = footsteps([footsteps.side] == Foot.Left);
+right_steps = footsteps([footsteps.side] == Foot.Right);
 
-start_l = length(bez_x_st(floor(end/2)+1:end));
-end_l = length(left_traj_x) - length(bez_x_st(1:floor(end/2)));
-start_r = length(right_traj_x) - length(bez_x_sw(1:floor(end/2)));
-end_r = length(bez_x_sw(floor(end/2)+1:end));
-body_x = [left_traj_x(1:end_r) ...
-    linspace(left_traj_x(end_r+1), right_traj_x(start_l), start_l-end_r) ...
-    right_traj_x(start_l+1:end_l) ...
-    linspace(right_traj_x(end_l+1), left_traj_x(start_r), start_r-end_l) ...
-    left_traj_x(start_r+1:end)];
+n = floor(duration/update_interval)+1;
+psi_traj = ones(n,1)*-pi/2;
+left_toe.x = zeros(n,1);
+left_toe.y = zeros(n,1);
+right_toe.x = zeros(n,1);
+right_toe.y = zeros(n,1);
+body_x = zeros(n,1);
+
+% Toe trajectories for left leg
+next_time = 0;
+cur_time = 0;
+end_x = 0;
+
+for i = 1:length(left_steps)
+    % Stance trajectories
+    start_x = left_steps(i).x - body_traj.positionAtTime(cur_time);
+    end_x = left_steps(i).x - body_traj.positionAtTime(next_time);
+    start_vx = -body_traj.speedAtTime(cur_time);
+    end_vx = -body_traj.speedAtTime(next_time);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    left_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        x.positionAtTime(0:update_interval:next_time-cur_time);
+    cur_time = next_time;
+    next_time = next_time + swing_prop;
+    
+    if i == length(left_steps)
+        break
+    end
+    
+    % Swing trajectories
+    start_x = left_steps(i).x - body_traj.positionAtTime(cur_time);
+    end_x = left_steps(i+1).x - body_traj.positionAtTime(next_time);
+    start_vx = -body_traj.speedAtTime(cur_time);
+    end_vx = -body_traj.speedAtTime(next_time);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    y = BezierTrajectory(next_time-cur_time, 0, 0, 0, 0, step_height);
+    left_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        x.positionAtTime(0:update_interval:next_time-cur_time);
+    left_toe.y(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        y.positionAtTime(0:update_interval:next_time-cur_time);
+    cur_time = next_time;
+    next_time = next_time + (1 - swing_prop);
+end
+left_toe.x = left_toe.x(1:n);
+left_toe.y = left_toe.y(1:n);
+
+% Toe trajectories for right leg
+next_time = 0.5;
+cur_time = 0;
+ens_x = 0;
+
+for i = 1:length(right_steps)
+    % Stance trajectories
+    start_x = right_steps(i).x - body_traj.positionAtTime(cur_time);
+    end_x = right_steps(i).x - body_traj.positionAtTime(next_time);
+    start_vx = -body_traj.speedAtTime(cur_time);
+    end_vx = -body_traj.speedAtTime(next_time);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    right_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        x.positionAtTime(0:update_interval:next_time-cur_time);
+    cur_time = next_time;
+    next_time = next_time + swing_prop;
+    
+    if i == length(right_steps)
+        break
+    end
+    
+    % Swing trajectories
+    start_x = right_steps(i).x - body_traj.positionAtTime(cur_time);
+    end_x = right_steps(i+1).x - body_traj.positionAtTime(next_time);
+    start_vx = -body_traj.speedAtTime(cur_time);
+    end_vx = -body_traj.speedAtTime(next_time);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    y = BezierTrajectory(next_time-cur_time, 0, 0, 0, 0, step_height);
+    right_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        x.positionAtTime(0:update_interval:next_time-cur_time);
+    right_toe.y(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
+        y.positionAtTime(0:update_interval:next_time-cur_time);
+    cur_time = next_time;
+    next_time = next_time + (1 - swing_prop);
+end
+right_toe.x = right_toe.x(1:n);
+right_toe.y = right_toe.y(1:n);
+
+for i = 1:length(footsteps)-2
+    cur_index = floor((i-1)*airtime/update_interval) + 1;
+    next_index = cur_index + floor(swing_prop/update_interval);
+    if mod(i, 2) == 1
+        body_x(cur_index:next_index) = right_toe.x(cur_index:next_index);
+    else
+        body_x(cur_index:next_index) = left_toe.x(cur_index:next_index);
+    end
+end
+for i = 1:length(footsteps)-2
+    cur_index = floor((i-1)*airtime/update_interval) + floor(swing_prop/update_interval) + 1;
+    next_index = cur_index + floor(swing_prop/update_interval);
+    body_x(cur_index:next_index) = linspace(body_x(cur_index), body_x(next_index), length(cur_index:next_index));
+end
 body_x = smooth(body_x, 250)';
-left_traj_x = left_traj_x-body_x;
-right_traj_x = right_traj_x-body_x;
+left_toe.x = left_toe.x - body_x';
+right_toe.x = right_toe.x - body_x';
+left_toe.y = left_toe.y - init_body_height;
+right_toe.y = right_toe.y - init_body_height;
 
-q_left = ikine(dh, left_traj_x, left_traj_y, psi_traj, [0 0 0]);
+dh_left = zeros(3, 4);
+dh_left(:,3) = a';
+q_left = ikine(dh_left, left_toe.x, left_toe.y, psi_traj, [0 0 0]);
 q0_left = q_left(:,2);
 q_left(:,1) = q0_left;
-dh_left = zeros(3, 4);
 dh_left(:,2) = q0_left;
-dh_left(:,3) = a';
 
-q_right = ikine(dh, right_traj_x, right_traj_y, psi_traj, [0 0 0]);
+dh_right = zeros(3, 4);
+dh_right(:,3) = a';
+q_right = ikine(dh_right, right_toe.x, right_toe.y, psi_traj, [0 0 0]);
 q0_right = q_right(:,2);
 q_right(:,1) = q0_right;
-dh_right = zeros(3, 4);
 dh_right(:,2) = q0_right;
-dh_right(:,3) = a;
 
-q_left = repmat(q_left, [1 num_steps]);
-q_right = repmat(q_right, [1 num_steps]);
-q_l_ts = timeseries(q_left', 0:0.001:num_steps*stride_duration-update_interval);
-q_r_ts = timeseries(q_right', 0:0.001:num_steps*stride_duration-update_interval);
+q_l_ts = timeseries(q_left', 0:0.001:body_traj.duration);
+q_r_ts = timeseries(q_right', 0:0.001:body_traj.duration);
