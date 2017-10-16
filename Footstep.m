@@ -18,11 +18,8 @@ classdef Footstep
         function footsteps = generateFootsteps(path, L_init, R_init)
             %GENERATEFOOTSTEPS generates footsteps to follow the path
             
-            %TODO: Jeffery, path is a BezierTrajectory, footsteps is an
-            % array of Footstep. You should use the positionAFtTime and
-            % speedAtTime member function of the BezierTrajectory.
-            
-            airtime = 0.5;                                  %Time to take one step, can be adjusted. 
+            %Time to take one step, can be adjusted.
+            airtime = 0.5;
             n = floor(path.duration/path.increment);
 
             %Initialize the L and R vectors
@@ -92,7 +89,5 @@ classdef Footstep
                 end
             end
         end
-        
-        %%%%%%%%%%%%%%%%%%
     end
 end
