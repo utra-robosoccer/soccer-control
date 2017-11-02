@@ -6,6 +6,18 @@ classdef Trajectory
         y
     end
     
+    methods
+        function [x, y] = positionAtTime(obj, t)
+            x = obj.x.positionAtTime(t);
+            y = obj.y.positionAtTime(t);
+        end
+        
+        function [vx, vy] = speedAtTime(obj, t)
+            vx = obj.x.speedAtTime(t);
+            vy = obj.y.speedAtTime(t);
+        end
+    end
+    
     methods(Static)
         function obj = FootTrajectory(duration, prev_foot, next_foot, height)
             if prev_foot.side ~= next_foot.side
