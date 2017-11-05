@@ -1,14 +1,16 @@
 step_height = 0.02;
 swing_prop = 0.25;
 airtime = 0.5;
-update_interval = 0.001;
-init_body_height = 0.15;
-duration = 6;
+update_interval = 0.003;
+hip_height = 0.15;
+init_body_height = hip_height + 0.105;
+duration = 10;
+smoothing = 0.25;
 a = [0.089 0.08253 0.037];
 
 % Define path
-start = Pose(0, 0, 0, -0.07);
-final = Pose(1, 0, 0, 0.2);
+start = Pose(0, 0, 0, 0);
+final = Pose(1, 0, 0, 0);
 body_traj = Trajectory.PlannedPath(duration, start, final).x;
 stepl = Footstep(0, Foot.Left);
 stepr = Footstep(0, Foot.Right);
@@ -116,11 +118,11 @@ for i = 1:length(footsteps)-2
     next_index = cur_index + floor(swing_prop/update_interval);
     body_x(cur_index:next_index) = linspace(body_x(cur_index), body_x(next_index), length(cur_index:next_index));
 end
-body_x = smooth(body_x, 250)';
+body_x = smooth(body_x, smoothing/update_interval)';
 left_toe.x = left_toe.x - body_x';
 right_toe.x = right_toe.x - body_x';
-left_toe.y = left_toe.y - init_body_height;
-right_toe.y = right_toe.y - init_body_height;
+left_toe.y = left_toe.y - hip_height;
+right_toe.y = right_toe.y - hip_height;
 
 dh_left = zeros(3, 4);
 dh_left(:,3) = a';
@@ -136,5 +138,7 @@ q0_right = q_right(:,2);
 q_right(:,1) = q0_right;
 dh_right(:,2) = q0_right;
 
-q_l_ts = timeseries(q_left', 0:0.001:body_traj.duration);
-q_r_ts = timeseries(q_right', 0:0.001:body_traj.duration);
+q_l_ts = timeseries(q_left', 0:update_interval:body_traj.duration);
+q_r_ts = timeseries(q_right', 0:update_interval:body_traj.duration);
+
+sim biped_robot.slx StartTime 0 StopTime duration
