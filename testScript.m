@@ -11,7 +11,7 @@ a = [0.089 0.08253 0.037];
 % Define path
 start = Pose(0, 0, 0, 0);
 final = Pose(1, 0, 0, 0);
-body_traj = Trajectory.plannedPath(duration, update_interval, start, final).x;
+body_traj = Trajectory.plannedPath(duration, start, final).x;
 stepl = Footstep(0, Foot.Left);
 stepr = Footstep(0, Foot.Right);
 
@@ -39,7 +39,7 @@ for i = 1:length(left_steps)
     end_x = left_steps(i).x - body_traj.positionAtTime(next_time);
     start_vx = -body_traj.speedAtTime(cur_time);
     end_vx = -body_traj.speedAtTime(next_time);
-    x = BezierTrajectory(next_time-cur_time, update_interval, start_x, end_x, start_vx, end_vx);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
     left_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
         x.positionAtTime(0:update_interval:next_time-cur_time);
     cur_time = next_time;
@@ -54,8 +54,8 @@ for i = 1:length(left_steps)
     end_x = left_steps(i+1).x - body_traj.positionAtTime(next_time);
     start_vx = -body_traj.speedAtTime(cur_time);
     end_vx = -body_traj.speedAtTime(next_time);
-    x = BezierTrajectory(next_time-cur_time, update_interval, start_x, end_x, start_vx, end_vx);
-    y = BezierTrajectory(next_time-cur_time, update_interval, 0, 0, 0, 0, step_height);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    y = BezierTrajectory(next_time-cur_time, 0, 0, 0, 0, step_height);
     left_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
         x.positionAtTime(0:update_interval:next_time-cur_time);
     left_toe.y(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
@@ -77,7 +77,7 @@ for i = 1:length(right_steps)
     end_x = right_steps(i).x - body_traj.positionAtTime(next_time);
     start_vx = -body_traj.speedAtTime(cur_time);
     end_vx = -body_traj.speedAtTime(next_time);
-    x = BezierTrajectory(next_time-cur_time, update_interval, start_x, end_x, start_vx, end_vx);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
     right_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
         x.positionAtTime(0:update_interval:next_time-cur_time);
     cur_time = next_time;
@@ -92,8 +92,8 @@ for i = 1:length(right_steps)
     end_x = right_steps(i+1).x - body_traj.positionAtTime(next_time);
     start_vx = -body_traj.speedAtTime(cur_time);
     end_vx = -body_traj.speedAtTime(next_time);
-    x = BezierTrajectory(next_time-cur_time, update_interval, start_x, end_x, start_vx, end_vx);
-    y = BezierTrajectory(next_time-cur_time, update_interval, 0, 0, 0, 0, step_height);
+    x = BezierTrajectory(next_time-cur_time, start_x, end_x, start_vx, end_vx);
+    y = BezierTrajectory(next_time-cur_time, 0, 0, 0, 0, step_height);
     right_toe.x(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...
         x.positionAtTime(0:update_interval:next_time-cur_time);
     right_toe.y(floor(cur_time/update_interval)+1:floor(next_time/update_interval)+1) = ...

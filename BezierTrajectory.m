@@ -5,12 +5,11 @@ classdef BezierTrajectory < handle
         order = 0;
         parameters = [];
         duration = 1.0;
-        update_interval = 0.01;
         cur_time = 0.0;
     end
     
     methods
-        function obj = BezierTrajectory(duration, update_interval, varargin)
+        function obj = BezierTrajectory(duration, varargin)
             %BEZIERTRAJECTORY creates a bezier trajectory between points
             %
             %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
@@ -18,7 +17,6 @@ classdef BezierTrajectory < handle
             if nargin > 0
                 obj.order = length(varargin) - 1;
                 obj.duration = duration;
-                obj.update_interval = update_interval;
                 if obj.order == 3
                     obj.parameters = [varargin{1}, ...
                         3*varargin{1} + varargin{3}*duration, ...
@@ -38,17 +36,6 @@ classdef BezierTrajectory < handle
                         'arguments or add a new definition'])
                 end
             end
-        end
-        
-        function x = nextPosition(obj)
-            %NEXTPOSITION generates the next position of the foot
-            if obj.cur_time < obj.duration
-                x = obj.positionAtTime(obj.cur_time);
-            else
-                %TODO: How to properly handle out of bounds exceptions?
-                error('Out of Bounds');
-            end
-            obj.cur_time = obj.cur_time + obj.update_interval;
         end
         
         function x = positionAtTime(obj, t)
@@ -72,11 +59,6 @@ classdef BezierTrajectory < handle
             tp = min(t + obj.update_interval, obj.duration);
             tm = max(t - obj.update_interval, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
-        end
-        
-        function b = isComplete(obj)
-            %ISCOMPLETE returns true when the trejectory is at its end
-            b = obj.cur_time - obj.duration < 1e-10;
         end
     end
 end

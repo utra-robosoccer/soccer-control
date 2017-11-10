@@ -8,14 +8,13 @@ classdef Movement < handle
         body_pos = 0;
         
         footsteps = Footstep.empty();
-        left_traj = Trajectory.empty();
-        right_traj = Trajectory.empty();
+        left_traj = FootCycle.empty();
+        right_traj = FootCycle.empty();
         cur_side = Foot.empty();
         
         step_height = 0.02;
-        swing_prop = 0.25;
-        air_time = 0.5;
-        update_interval = 0.001;
+        stance_time = 0.75;
+        swing_time = 0.25;
         hip_height = 0.15;
         body_height = 0.105;
         a = [0.089 0.08253 0.037];
@@ -80,10 +79,10 @@ classdef Movement < handle
             
             if length(obj.path) == 1 && length(obj.poses) >= 3
                 obj.path(2) = Trajectory.plannedPath(obj.durations(2), ...
-                    obj.update_interval, obj.poses(2), obj.poses(3)).x;
+                    obj.poses(2), obj.poses(3)).x;
             elseif isempty(obj.path) && length(obj.poses) >= 2
                 obj.path = Trajectory.plannedPath(obj.durations(1), ...
-                    obj.update_interval, obj.poses(1), obj.poses(2)).x;
+                    obj.poses(1), obj.poses(2)).x;
                 obj.updatePath();
             end
             obj.footsteps = [obj.footsteps(1:end-2), ...
@@ -92,8 +91,9 @@ classdef Movement < handle
             obj.updateFootTraj();
         end
         
-        function updateFootTraj(obj, shift)
-            % Generate new foot trajectories to the next footsteps
+        function updateFootTraj(obj)
+        % Update foot trajectories
+            % Shift trajectories and footsteps
             if ~isempty(obj.left_traj) && obj.left_time > obj.left_traj.x.duration
                 obj.left_time = 0;
                 obj.footsteps = obj.footsteps(2:end);
@@ -101,7 +101,7 @@ classdef Movement < handle
                 if length(obj.left_traj) == 2
                     obj.left_traj = obj.left_traj(2);
                 else
-                    obj.left_traj = Trajectory.empty();
+                    obj.left_traj = FootCycle.empty();
                 end
             end
             if ~isempty(obj.right_traj) && obj.right_time > obj.right_traj.x.duration
@@ -111,36 +111,58 @@ classdef Movement < handle
                 if length(obj.right_traj) == 2
                     obj.right_traj = obj.right_traj(2);
                 else
-                    obj.right_traj = Trajectory.empty();
+                    obj.right_traj = FootCycle.empty();
                 end
             end
-            if length(obj.footsteps) == 2
+            
+            % If there are no more footsteps to plan
+            if length(obj.footsteps) - length(obj.right_traj) - length(obj.left_traj) == 2 || ...
+                    length(obj.left_traj) == 2 && length(obj.right_traj) == 2
                 return
-            end
-            
-            if leng
-            
-            start_time   = obj.body_time;
-            end_time     = obj.body_time + obj.air_time;
-            start_swing  = obj.footsteps(1).x - obj.path.positionAtTime(start_time);
-            end_swing    = obj.footsteps(3).x - obj.path.positionAtTime(end_time);
-            start_stance = obj.footsteps(2).x - obj.path.positionAtTime(start_time);
-            end_stance   = obj.footsteps(2).x - obj.path.positionAtTime(end_time);
-            start_speed  = obj.path.speedAtTime(start_time);
-            end_speed    = obj.path.speedAtTime(end_time);
-            
-            swing_traj = Trajectory.FootTrajectory(obj.air_time, obj.update_interval, ...
-                start_swing, end_swing, start_speed, end_speed, obj.step_height);
-            stance_traj = Trajectory.FootTrajectory(obj.air_time, obj.update_interval, ...
-                start_stance, end_stance, start_speed, end_speed, 0);
-            
-            if obj.cur_side == Foot.Left
-                obj.left_traj = swing_traj;
-                obj.right_traj = stance_traj;
+            elseif obj.footsteps(1).side == Foot.Left
+                if isempty(obj.left_traj) && length(obj.footsteps) >= 3
+                    obj.left_traj(1) = FootCycle(obj.path, obj.footsteps(1), ...
+                        obj.footsteps(3), obj.step_height, obj.body_time, ...
+                        obj.footsteps(3).time - obj.body_time - obj.swing_time, ...
+                        obj.footsteps(3).time - obj.body_time);
+                elseif length(obj.footsteps) >= 5
+                    obj.left_traj(2) = FootCycle(obj.path, obj.footsteps(3), ...
+                        obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
+                        obj.stance_time, obj.stance_time + obj.swing_time);
+                end
+                if isempty(obj.right_traj) && length(obj.footsteps) >= 4
+                    obj.right_traj(1) = FootCycle(obj.path, obj.footsteps(2), ...
+                        obj.footsteps(4), obj.step_height, obj.body_time, ...
+                        obj.footsteps(4).time - obj.body_time - obj.swing_time, ...
+                        obj.footsteps(4).time - obj.body_time);
+                elseif length(obj.footsteps) >= 6
+                    obj.right_traj(2) = FootCycle(obj.path, obj.footsteps(4), ...
+                        obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
+                        obj.stance_time, obj.stance_time + obj.swing_time);
+                end
             else
-                obj.right_traj = swing_traj;
-                obj.left_traj = stance_traj;
+                if isempty(obj.right_traj) && length(obj.footsteps) >= 3
+                    obj.right_traj(1) = FootCycle(obj.path, obj.footsteps(1), ...
+                        obj.footsteps(3), obj.step_height, obj.body_time, ...
+                        obj.footsteps(3).time - obj.body_time - obj.swing_time, ...
+                        obj.footsteps(3).time - obj.body_time);
+                elseif length(obj.footsteps) >= 5
+                    obj.right_traj(2) = FootCycle(obj.path, obj.footsteps(3), ...
+                        obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
+                        obj.stance_time, obj.stance_time + obj.swing_time);
+                end
+                if isempty(obj.left_traj) && length(obj.footsteps) >= 4
+                    obj.left_traj(1) = FootCycle(obj.path, obj.footsteps(2), ...
+                        obj.footsteps(4), obj.step_height, obj.body_time, ...
+                        obj.footsteps(4).time - obj.body_time - obj.swing_time, ...
+                        obj.footsteps(4).time - obj.body_time);
+                elseif length(obj.footsteps) >= 6
+                    obj.left_traj(2) = FootCycle(obj.path, obj.footsteps(4), ...
+                        obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
+                        obj.stance_time, obj.stance_time + obj.swing_time);
+                end
             end
+            
         end
         
     end

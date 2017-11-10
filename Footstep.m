@@ -4,13 +4,15 @@ classdef Footstep
     properties
         x = 0;
         side = Foot.Left;
+        time = 0;
     end
     
     methods
-        function obj = Footstep(x, side)
+        function obj = Footstep(x, side, time)
             if nargin > 0
                 obj.x = x;
                 obj.side = side;
+                obj.time = time;
             end
         end
     end
@@ -33,7 +35,7 @@ classdef Footstep
                 next_pos = path.positionAtTime(i*airtime) + ...
                     path.speedAtTime(i*airtime)*airtime*(1-swing_prop);
                 next_side = footsteps(i).side;
-                footsteps(i+2) = Footstep(next_pos, next_side);
+                footsteps(i+2) = Footstep(next_pos, next_side, i*airtime);
             end
             
             if floor(n_steps) < ceil(n_steps)
