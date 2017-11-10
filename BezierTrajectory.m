@@ -5,19 +5,20 @@ classdef BezierTrajectory < handle
         order = 0;
         parameters = [];
         duration = 1.0;
-        increment = 0.01;
+        update_interval = 0.01;
         cur_time = 0.0;
     end
     
     methods
-        function obj = BezierTrajectory(duration, varargin)
+        function obj = BezierTrajectory(duration, update_interval, varargin)
             %BEZIERTRAJECTORY creates a bezier trajectory between points
             %
-            %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
-            %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
+            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
+            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
             if nargin > 0
-                obj.order = nargin - 2;
+                obj.order = length(varargin) - 1;
                 obj.duration = duration;
+                obj.update_interval = update_interval;
                 if obj.order == 3
                     obj.parameters = [varargin{1}, ...
                         3*varargin{1} + varargin{3}*duration, ...
@@ -47,7 +48,7 @@ classdef BezierTrajectory < handle
                 %TODO: How to properly handle out of bounds exceptions?
                 error('Out of Bounds');
             end
-            obj.cur_time = obj.cur_time + obj.increment;
+            obj.cur_time = obj.cur_time + obj.update_interval;
         end
         
         function x = positionAtTime(obj, t)
@@ -68,8 +69,8 @@ classdef BezierTrajectory < handle
         
         function v = speedAtTime(obj, t)
             %SPEEDATTIME returns the speed at time t
-            tp = min(t + obj.increment, obj.duration);
-            tm = max(t - obj.increment, 0);
+            tp = min(t + obj.update_interval, obj.duration);
+            tm = max(t - obj.update_interval, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
         end
         
