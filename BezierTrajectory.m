@@ -6,6 +6,7 @@ classdef BezierTrajectory < handle
         parameters = [];
         duration = 1.0;
         cur_time = 0.0;
+        secant_size = 0.001;
     end
     
     methods
@@ -45,6 +46,10 @@ classdef BezierTrajectory < handle
                 return
             elseif min(t) < 0
                 error('Invalid time supplied');
+            elseif length(t) == 1&& t > obj.duration
+                x = obj.positionAtTime(obj.duration) + ...
+                    obj.speedAtTime(obj.duration) * (t - obj.duration);
+                return
             end
             x = 0;
             for i = 0:obj.order
@@ -56,8 +61,8 @@ classdef BezierTrajectory < handle
         
         function v = speedAtTime(obj, t)
             %SPEEDATTIME returns the speed at time t
-            tp = min(t + obj.update_interval, obj.duration);
-            tm = max(t - obj.update_interval, 0);
+            tp = min(t + obj.secant_size, obj.duration);
+            tm = max(t - obj.secant_size, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
         end
     end

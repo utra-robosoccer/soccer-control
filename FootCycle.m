@@ -13,19 +13,19 @@ classdef FootCycle
                 step_height, cur_time, trans_time, duration)
             obj.trans_time = trans_time;
             obj.duration = duration;
-            init_pos    = last_step.x - body_traj.position(cur_time);
-            trans_pos   = last_step.x - body_traj.position(cur_time + trans_time);
-            fin_pos     = next_step.x - body_traj.position(cur_time + duration);
+            init_pos    = last_step.x - body_traj.positionAtTime(cur_time);
+            trans_pos   = last_step.x - body_traj.positionAtTime(cur_time + trans_time);
+            fin_pos     = next_step.x - body_traj.positionAtTime(cur_time + duration);
             init_speed  = body_traj.speedAtTime(cur_time);
             trans_speed = body_traj.speedAtTime(cur_time + trans_time);
             fin_speed   = body_traj.speedAtTime(cur_time + duration);
             if trans_time > 0
                 obj.stance = Trajectory.footTrajectory(trans_time, ...
-                    init_pos, trans_pos, -init_speed, -trans_speed, 0);
+                    init_pos, trans_pos, init_speed, trans_speed, 0);
             end
             if duration > trans_time
                 obj.swing = Trajectory.footTrajectory(duration - trans_time, ...
-                    trans_pos, fin_pos, -trans_speed, -fin_speed, step_height);
+                    trans_pos, fin_pos, trans_speed, fin_speed, step_height);
             end
         end
         

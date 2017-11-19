@@ -4,8 +4,8 @@ classdef Movement < handle
     properties (Hidden)
         poses = Pose.empty();
         durations = [];
+        update_interval = 0.01;
         path = Trajectory.empty();
-        body_pos = 0;
         
         footsteps = Footstep.empty();
         left_traj = FootCycle.empty();
@@ -17,14 +17,20 @@ classdef Movement < handle
         swing_time = 0.25;
         hip_height = 0.15;
         body_height = 0.105;
-        a = [0.089 0.08253 0.037];
+        link_lengths = [0.089 0.08253 0.037];
         
-        smoothing = 0.25;
+        smoothing = 0.9;
+        look_ahead = 0.1;
         
-        cur_angles = [ 0 0 0 ; 0 0 0 ];
         body_time = 0;
         left_time = 0;
         right_time = 0;
+        
+        cur_angles = [ 0 0 0 ; 0 0 0 ];
+        cur_pos = 0;
+        body_pos = 0;
+        cur_left = 0;
+        cur_right = 0;
     end
     
     methods
@@ -35,32 +41,141 @@ classdef Movement < handle
             obj.footsteps = [next_foot, prev_foot];
             obj.body_height = obj.body_height + obj.hip_height;
             obj.cur_side = next_foot.side;
-            obj.body_pos = start_pose.x;
+            dh = zeros(3);
+            dh(1:end, 3) = obj.link_lengths;
+            
+            next_angles = ikine(dh, [0 next_foot.x], [0 -obj.hip_height], ...
+                [0 -pi/2], obj.cur_angles(1,1:end));
+            prev_angles = ikine(dh, [0 prev_foot.x], [0 -obj.hip_height], ...
+                [0 -pi/2], obj.cur_angles(1,1:end));
+            if next_foot.side == Foot.Left
+                obj.cur_angles(1,:) = next_angles(:,2);
+                obj.cur_angles(2,:) = prev_angles(:,2);
+            else 
+                obj.cur_angles(1,:) = prev_angles(:,2);
+                obj.cur_angles(2,:) = next_angles(:,2);
+            end
         end
         
         function addPose(obj, pose, duration)
             % Add a new goal pose
             obj.poses(end+1) = pose;
             obj.durations(end+1) = duration;
-            obj.toNextPose(false);
+            obj.updatePath();
         end
         
         function angles = getNextAngles(obj)
-            if obj.foot_time >= obj.smoothing / 2 && ...
-                    obj.foot_time < obj.air_time - obj.smoothing / 2
-                if obj.cur_side = Foot.Left
-                    body_next_pos = obj.left_traj.x.positionAtTime(obj.foot_time + obj.smoothing / 2
-                else
-                    
-                end
+            obj.incrementTime();
+            
+            % Update the nominal foot positions relative to the path
+            if ~isempty(obj.left_traj)
+                left_foot = obj.left_traj(1).positionAtTime(obj.left_time);
             else
-                
+                x_change = obj.path(1).positionAtTime(obj.body_time) - obj.cur_pos;
+                left_foot = obj.cur_left - [x_change, 0];
             end
+            if ~isempty(obj.right_traj)
+                right_foot = obj.right_traj(1).positionAtTime(obj.right_time);
+            else
+                x_change = obj.path(1).positionAtTime(obj.body_time) - obj.cur_pos;
+                right_foot = obj.cur_right - [x_change, 0];
+            end
+            obj.cur_left = left_foot;
+            obj.cur_right = right_foot;
+            obj.cur_pos = obj.path(1).positionAtTime(obj.body_time);
+            
+            % Update the body position relative to the path
+            % If there is nothing, the body stays over the foot
+            if isempty(obj.left_traj) && isempty(obj.right_traj)
+                new_body_pos = obj.body_pos;
+            % If there is one trajectory left, move to the last foot
+            elseif isempty(obj.right_traj)
+                if obj.left_traj(1).duration - obj.swing_time > obj.left_time + obj.look_ahead
+                    new_body_pos = obj.linearInterpolateBody();
+                else
+                    x_change = obj.path(1).positionAtTime(obj.body_time + obj.look_ahead) - obj.cur_pos;
+                    new_body_pos = obj.cur_right - [x_change, 0];
+                end
+            elseif isempty(obj.left_traj)
+                if obj.right_traj(1).duration - obj.swing_time > obj.right_time + obj.look_ahead
+                    new_body_pos = obj.linearInterpolateBody();
+                else
+                    x_change = obj.path(1).positionAtTime(obj.body_time + obj.look_ahead) - obj.cur_pos;
+                    new_body_pos = obj.cur_left - [x_change, 0];
+                end
+            % Linear line to the next foot
+            elseif (obj.left_traj(1).duration - obj.swing_time > obj.left_time + obj.look_ahead || ...
+                    obj.left_traj(1).duration < obj.left_time + obj.look_ahead) && ...
+                   (obj.right_traj(1).duration - obj.swing_time > obj.right_time + obj.look_ahead || ...
+                    obj.right_traj(1).duration < obj.right_time + obj.look_ahead)
+                new_body_pos = obj.linearInterpolateBody();
+            % Match the stance foot
+            elseif obj.left_traj(1).duration - obj.swing_time <= obj.left_time + obj.look_ahead
+                new_body_pos = obj.right_traj(1).positionAtTime(obj.right_time + obj.look_ahead);
+            else
+                new_body_pos = obj.left_traj(1).positionAtTime(obj.left_time + obj.look_ahead);
+            end
+            obj.body_pos = (1 - obj.smoothing) * new_body_pos(1) + obj.smoothing * obj.body_pos; 
+            
+            % Positions of the toe relative to the body
+            rel_left = obj.cur_left - [obj.body_pos obj.hip_height];
+            rel_right = obj.cur_right - [obj.body_pos obj.hip_height];
+            
+            dh = zeros(3, 4);
+            dh(:,3) = obj.link_lengths;
+            
+            q_left = ikine(dh, [0 rel_left(1)], [0 rel_left(2)], [0 -pi/2], obj.cur_angles(1, :));
+            q_right = ikine(dh, [0 rel_right(1)], [0 rel_right(2)], [0 -pi/2], obj.cur_angles(2, :));
+            
+            obj.cur_angles = [q_left(:,2)'; q_right(:,2)'];
+            angles = [q_left(:,2)' q_right(:,2)'];
+            
+            obj.updatePath();
+        end
+        
+        function in = simulate(obj, poses, durations)
+            for i = 1:length(poses)
+                obj.addPose(poses(i), durations(i));
+            end
+            
+            total_time = sum(obj.durations) - obj.body_time;
+            total_length = floor(total_time / obj.update_interval);
+            angles = zeros(6, total_length);
+            for i = 1:total_length + 1
+                angles(:, i) = obj.getNextAngles();
+            end
+            
+            in = Simulink.SimulationInput('biped_robot');
+            in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
+            
+            dh_left = zeros(3, 4);
+            dh_left(:,3) = obj.link_lengths;
+            dh_left(:,2) = angles(1:3, 1);
+            dh_right = zeros(3, 4);
+            dh_right(:,3) = obj.link_lengths;
+            dh_right(:,2) = angles(4:6, 1);
+            
+            q_l_ts = timeseries(angles(1:3, :), 0:obj.update_interval:total_time);
+            q_r_ts = timeseries(angles(4:6, :), 0:obj.update_interval:total_time);
+            
+            in = in.setVariable('dh_left', dh_left, 'Workspace', 'biped_robot');
+            in = in.setVariable('dh_right', dh_right, 'Workspace', 'biped_robot');
+            in = in.setVariable('q_l_ts', q_l_ts, 'Workspace', 'biped_robot');
+            in = in.setVariable('q_r_ts', q_r_ts, 'Workspace', 'biped_robot');
+            in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
+            
+            sim(in);
         end
         
     end
     
     methods (Hidden)
+        
+        function incrementTime(obj)
+            obj.body_time = obj.body_time + obj.update_interval;
+            obj.left_time = obj.left_time + obj.update_interval;
+            obj.right_time = obj.right_time + obj.update_interval;
+        end
         
         function updatePath(obj)
             % Generate body trajectories to the next pose
@@ -80,21 +195,24 @@ classdef Movement < handle
             if length(obj.path) == 1 && length(obj.poses) >= 3
                 obj.path(2) = Trajectory.plannedPath(obj.durations(2), ...
                     obj.poses(2), obj.poses(3)).x;
+                obj.footsteps = [obj.footsteps(1:end-2), ...
+                    Footstep.generateFootsteps(obj.path, ...
+                    obj.footsteps(end-1), obj.footsteps(end))'];
             elseif isempty(obj.path) && length(obj.poses) >= 2
                 obj.path = Trajectory.plannedPath(obj.durations(1), ...
                     obj.poses(1), obj.poses(2)).x;
+                obj.footsteps = [obj.footsteps(1:end-2), ...
+                    Footstep.generateFootsteps(obj.path, ...
+                    obj.footsteps(end-1), obj.footsteps(end))'];
                 obj.updatePath();
             end
-            obj.footsteps = [obj.footsteps(1:end-2), ...
-                Footstep.generateFootsteps(obj.path, ...
-                obj.footsteps(end-1), obj.footsteps(end))];
             obj.updateFootTraj();
         end
         
         function updateFootTraj(obj)
         % Update foot trajectories
             % Shift trajectories and footsteps
-            if ~isempty(obj.left_traj) && obj.left_time > obj.left_traj.x.duration
+            if ~isempty(obj.left_traj) && obj.left_time > obj.left_traj(1).duration
                 obj.left_time = 0;
                 obj.footsteps = obj.footsteps(2:end);
                 obj.cur_side = obj.footsteps(1).side;
@@ -104,7 +222,7 @@ classdef Movement < handle
                     obj.left_traj = FootCycle.empty();
                 end
             end
-            if ~isempty(obj.right_traj) && obj.right_time > obj.right_traj.x.duration
+            if ~isempty(obj.right_traj) && obj.right_time > obj.right_traj(1).duration
                 obj.right_time = 0;
                 obj.footsteps = obj.footsteps(2:end);
                 obj.cur_side = obj.footsteps(1).side;
@@ -125,6 +243,7 @@ classdef Movement < handle
                         obj.footsteps(3), obj.step_height, obj.body_time, ...
                         obj.footsteps(3).time - obj.body_time - obj.swing_time, ...
                         obj.footsteps(3).time - obj.body_time);
+                    obj.updateFootTraj();
                 elseif length(obj.footsteps) >= 5
                     obj.left_traj(2) = FootCycle(obj.path, obj.footsteps(3), ...
                         obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
@@ -135,6 +254,7 @@ classdef Movement < handle
                         obj.footsteps(4), obj.step_height, obj.body_time, ...
                         obj.footsteps(4).time - obj.body_time - obj.swing_time, ...
                         obj.footsteps(4).time - obj.body_time);
+                    obj.updateFootTraj();
                 elseif length(obj.footsteps) >= 6
                     obj.right_traj(2) = FootCycle(obj.path, obj.footsteps(4), ...
                         obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
@@ -165,6 +285,26 @@ classdef Movement < handle
             
         end
         
+        function pos = linearInterpolateBody(obj)
+            if obj.footsteps(3).time - obj.body_time > obj.swing_time
+                start_time = obj.footsteps(2).time;
+                end_time = obj.footsteps(3).time - obj.swing_time;
+                start_pos = obj.footsteps(1).x - obj.path(1).positionAtTime(start_time);
+                end_pos = obj.footsteps(2).x - obj.path(1).positionAtTime(end_time);
+                cur_time = obj.body_time + obj.look_ahead - obj.footsteps(2).time;
+            else
+                start_time = obj.footsteps(3).time;
+                if length(obj.footsteps) >= 4
+                    end_time = obj.footsteps(4).time - obj.swing_time;
+                else
+                    end_time = start_time + (obj.stance_time - 2*obj.swing_time)/2;
+                end
+                start_pos = obj.footsteps(2).x - obj.path(1).positionAtTime(start_time);
+                end_pos = obj.footsteps(3).x - obj.path(1).positionAtTime(end_time);
+                cur_time = obj.body_time + obj.look_ahead - obj.footsteps(3).time;
+            end
+            pos = start_pos + (end_pos - start_pos)/(end_time - start_time) * cur_time;
+        end
     end
     
 end

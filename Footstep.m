@@ -28,7 +28,6 @@ classdef Footstep
             n_steps = path.duration/airtime;
             footsteps = repmat(Footstep(), ceil(n_steps)+2, 1);
             footsteps(1:2) = [next_foot, cur_foot];
-            next_side = next_foot.side;
             next_pos = cur_foot.x;
             
             for i = 1:floor(n_steps)

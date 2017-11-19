@@ -1,7 +1,7 @@
 step_height = 0.02;
 swing_prop = 0.25;
 airtime = 0.5;
-update_interval = 0.001;
+update_interval = 0.01;
 hip_height = 0.18;
 init_body_height = hip_height + 0.105;
 duration = 10;
@@ -12,8 +12,8 @@ a = [0.089 0.08253 0.037];
 start = Pose(0, 0, 0, 0);
 final = Pose(1, 0, 0, 0);
 body_traj = Trajectory.plannedPath(duration, start, final).x;
-stepl = Footstep(0, Foot.Left);
-stepr = Footstep(0, Foot.Right);
+stepl = Footstep(0, Foot.Left, 0);
+stepr = Footstep(0, Foot.Right, 0);
 
 % Make footsteps
 footsteps = Footstep.generateFootsteps(body_traj, stepl, stepr);

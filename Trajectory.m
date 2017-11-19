@@ -20,9 +20,6 @@ classdef Trajectory
     methods(Static)
         function obj = footTrajectory(duration, ...
                 prev_pos, next_pos, prev_speed, next_speed, height)
-            if prev_foot.side ~= next_foot.side
-                error('Footstep mismatch');
-            end
             obj = Trajectory();
             obj.x = BezierTrajectory(duration, ...
                 prev_pos, next_pos, -prev_speed, -next_speed);
