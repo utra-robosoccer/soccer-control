@@ -5,18 +5,18 @@ classdef BezierTrajectory < handle
         order = 0;
         parameters = [];
         duration = 1.0;
-        increment = 0.01;
         cur_time = 0.0;
+        secant_size = 0.001;
     end
     
     methods
         function obj = BezierTrajectory(duration, varargin)
             %BEZIERTRAJECTORY creates a bezier trajectory between points
             %
-            %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
-            %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
+            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
+            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
             if nargin > 0
-                obj.order = nargin - 2;
+                obj.order = length(varargin) - 1;
                 obj.duration = duration;
                 if obj.order == 3
                     obj.parameters = [varargin{1}, ...
@@ -39,17 +39,6 @@ classdef BezierTrajectory < handle
             end
         end
         
-        function x = nextPosition(obj)
-            %NEXTPOSITION generates the next position of the foot
-            if obj.cur_time < obj.duration
-                x = obj.positionAtTime(obj.cur_time);
-            else
-                %TODO: How to properly handle out of bounds exceptions?
-                error('Out of Bounds');
-            end
-            obj.cur_time = obj.cur_time + obj.increment;
-        end
-        
         function x = positionAtTime(obj, t)
             %POSITIONATTIME returns the position at time t
             if isempty(t)
@@ -57,6 +46,10 @@ classdef BezierTrajectory < handle
                 return
             elseif min(t) < 0
                 error('Invalid time supplied');
+            elseif length(t) == 1&& t > obj.duration
+                x = obj.positionAtTime(obj.duration) + ...
+                    obj.speedAtTime(obj.duration) * (t - obj.duration);
+                return
             end
             x = 0;
             for i = 0:obj.order
@@ -68,14 +61,9 @@ classdef BezierTrajectory < handle
         
         function v = speedAtTime(obj, t)
             %SPEEDATTIME returns the speed at time t
-            tp = min(t + obj.increment, obj.duration);
-            tm = max(t - obj.increment, 0);
+            tp = min(t + obj.secant_size, obj.duration);
+            tm = max(t - obj.secant_size, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
-        end
-        
-        function b = isComplete(obj)
-            %ISCOMPLETE returns true when the trejectory is at its end
-            b = obj.cur_time - obj.duration < 1e-10;
         end
     end
 end

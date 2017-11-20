@@ -1,34 +1,33 @@
 classdef Trajectory
     %Trajectory Defines a Bezier trajectory through space
     
-    properties
+    properties (Hidden)
         x
         y
     end
     
     methods
-        function [x, y] = positionAtTime(obj, t)
-            x = obj.x.positionAtTime(t);
-            y = obj.y.positionAtTime(t);
+        function pos = positionAtTime(obj, t)
+            pos(1) = obj.x.positionAtTime(t);
+            pos(2) = obj.y.positionAtTime(t);
         end
-        
-        function [vx, vy] = speedAtTime(obj, t)
-            vx = obj.x.speedAtTime(t);
-            vy = obj.y.speedAtTime(t);
+        function speed = speedAtTime(obj, t)
+            speed(1) = obj.x.speedAtTime(t);
+            speed(2) = obj.y.speedAtTime(t);
         end
     end
     
     methods(Static)
-        function obj = FootTrajectory(duration, prev_foot, next_foot, height)
-            if prev_foot.side ~= next_foot.side
-                error('Footstep mismatch');
-            end
+        function obj = footTrajectory(duration, ...
+                prev_pos, next_pos, prev_speed, next_speed, height)
             obj = Trajectory();
-            obj.x = BezierTrajectory(duration, prev_foot.x, next_foot.x, 0, 0);
-            obj.y = BezierTrajectory(duration, 0, 0, 0, 0, height);
+            obj.x = BezierTrajectory(duration, ...
+                prev_pos, next_pos, -prev_speed, -next_speed);
+            obj.y = BezierTrajectory(duration, ...
+                0, 0, 0, 0, height);
         end
         
-        function obj = PlannedPath(duration, prev_pose, next_pose)
+        function obj = plannedPath(duration, prev_pose, next_pose)
             obj = Trajectory();
             obj.x = BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
                 prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));

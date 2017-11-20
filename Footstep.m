@@ -1,15 +1,19 @@
-classdef Footstep < Pose
+classdef Footstep
     %FOOTSTEP defines the position and orientation of a footstep
     
     properties
+        x = 0;
         side = Foot.Left;
+        time = 0;
     end
     
     methods
-        function obj = Footstep(x, y, q, side)
-            % q is theta
-            obj = obj@Pose(x, y, q, 0);
-            obj.side = side;
+        function obj = Footstep(x, side, time)
+            if nargin > 0
+                obj.x = x;
+                obj.side = side;
+                obj.time = time;
+            end
         end
     end
     
@@ -17,14 +21,9 @@ classdef Footstep < Pose
         function footsteps = generateFootsteps(path, next_foot, cur_foot)
             %GENERATEFOOTSTEPS generates footsteps to follow the path
             
-            % Jeffery, this use to take in a BezierTrajector and have x 
-            % built into the function. Can you modify this to work in
-            % multiple dimensions using Trajectory as the input to path?
-            % Note that it now extends Pose, so the x, y, and theta are
-            % members of this class.
-            
             %Time to take one step, can be adjusted.
             airtime = 0.5;
+            swing_prop = 0.25;
             
             n_steps = path.duration/airtime;
             footsteps = repmat(Footstep(), ceil(n_steps)+2, 1);
@@ -33,9 +32,9 @@ classdef Footstep < Pose
             
             for i = 1:floor(n_steps)
                 next_pos = path.positionAtTime(i*airtime) + ...
-                    path.speedAtTime(i*airtime)*airtime;
+                    path.speedAtTime(i*airtime)*airtime*(1-swing_prop);
                 next_side = footsteps(i).side;
-                footsteps(i+2) = Footstep(next_pos, next_side);
+                footsteps(i+2) = Footstep(next_pos, next_side, i*airtime);
             end
             
             if floor(n_steps) < ceil(n_steps)
