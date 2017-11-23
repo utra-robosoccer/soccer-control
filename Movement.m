@@ -16,7 +16,7 @@ classdef Movement < handle
         stance_time = 0.75;
         swing_time = 0.25;
         hip_height = 0.15;
-        body_height = 0.105;
+        body_height = 0.2;
         link_lengths = [0.089 0.08253 0.037];
         
         smoothing = 0.9;
@@ -31,6 +31,15 @@ classdef Movement < handle
         body_pos = 0;
         cur_left = 0;
         cur_right = 0;
+        
+        dh = [
+            0.0650     -pi/2         0      pi/2
+                 0      pi/2         0     -pi/2
+                 0         0    0.0890         0
+                 0         0    0.0825         0
+                 0         0         0      pi/2
+                 0         0    0.0370         0
+        ];
     end
     
     methods
@@ -41,19 +50,16 @@ classdef Movement < handle
             obj.footsteps = [next_foot, prev_foot];
             obj.body_height = obj.body_height + obj.hip_height;
             obj.cur_side = next_foot.side;
-            dh = zeros(3);
-            dh(1:end, 3) = obj.link_lengths;
             
-            next_angles = ikine(dh, [0 next_foot.x], [0 -obj.hip_height], ...
-                [0 -pi/2], obj.cur_angles(1,1:end));
-            prev_angles = ikine(dh, [0 prev_foot.x], [0 -obj.hip_height], ...
-                [0 -pi/2], obj.cur_angles(1,1:end));
+            %TODO should not depend on footstep position
+            next_angles = ikine(obj.dh, next_foot.x, -obj.hip_height, ...
+                -pi/2, obj.cur_angles(1,:));
+            prev_angles = ikine(obj.dh, prev_foot.x, -obj.hip_height, ...
+                -pi/2, obj.cur_angles(2,:));
             if next_foot.side == Foot.Left
-                obj.cur_angles(1,:) = next_angles(:,2);
-                obj.cur_angles(2,:) = prev_angles(:,2);
+                obj.cur_angles = [next_angles';  prev_angles'];
             else 
-                obj.cur_angles(1,:) = prev_angles(:,2);
-                obj.cur_angles(2,:) = next_angles(:,2);
+                obj.cur_angles = [prev_angles';  next_angles'];
             end
         end
         
@@ -121,14 +127,11 @@ classdef Movement < handle
             rel_left = obj.cur_left - [obj.body_pos obj.hip_height];
             rel_right = obj.cur_right - [obj.body_pos obj.hip_height];
             
-            dh = zeros(3, 4);
-            dh(:,3) = obj.link_lengths;
+            q_left = ikine(obj.dh, rel_left(1), rel_left(2), -pi/2, obj.cur_angles(1, :));
+            q_right = ikine(obj.dh, rel_right(1), rel_right(2), -pi/2, obj.cur_angles(2, :));
             
-            q_left = ikine(dh, [0 rel_left(1)], [0 rel_left(2)], [0 -pi/2], obj.cur_angles(1, :));
-            q_right = ikine(dh, [0 rel_right(1)], [0 rel_right(2)], [0 -pi/2], obj.cur_angles(2, :));
-            
-            obj.cur_angles = [q_left(:,2)'; q_right(:,2)'];
-            angles = [q_left(:,2)' q_right(:,2)'];
+            obj.cur_angles = [q_left'; q_right'];
+            angles = [q_left' q_right'];
             
             obj.updatePath();
         end
@@ -137,6 +140,9 @@ classdef Movement < handle
             for i = 1:length(poses)
                 obj.addPose(poses(i), durations(i));
             end
+            
+            q0_left = [0 0 obj.cur_angles(1,:) 0];
+            q0_right = [0 0 obj.cur_angles(2,:) 0];
             
             total_time = sum(obj.durations) - obj.body_time;
             total_length = floor(total_time / obj.update_interval);
@@ -148,20 +154,15 @@ classdef Movement < handle
             in = Simulink.SimulationInput('biped_robot');
             in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
             
-            dh_left = zeros(3, 4);
-            dh_left(:,3) = obj.link_lengths;
-            dh_left(:,2) = angles(1:3, 1);
-            dh_right = zeros(3, 4);
-            dh_right(:,3) = obj.link_lengths;
-            dh_right(:,2) = angles(4:6, 1);
+            angles = [zeros(2, total_length+1); angles(1:3, :); zeros(3, total_length+1); angles(4:6, :); zeros(1, total_length+1)];
+            angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
             
-            q_l_ts = timeseries(angles(1:3, :), 0:obj.update_interval:total_time);
-            q_r_ts = timeseries(angles(4:6, :), 0:obj.update_interval:total_time);
-            
-            in = in.setVariable('dh_left', dh_left, 'Workspace', 'biped_robot');
-            in = in.setVariable('dh_right', dh_right, 'Workspace', 'biped_robot');
-            in = in.setVariable('q_l_ts', q_l_ts, 'Workspace', 'biped_robot');
-            in = in.setVariable('q_r_ts', q_r_ts, 'Workspace', 'biped_robot');
+            in = in.setVariable('dh', obj.dh, 'Workspace', 'biped_robot');
+%             in = in.setVariable('q0_left', [0 0 0 0 0 0], 'Workspace', 'biped_robot');
+%             in = in.setVariable('q0_right', [0 0 0 0 pi/2 0], 'Workspace', 'biped_robot');
+            in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
+            in = in.setVariable('q0_right', q0_left, 'Workspace', 'biped_robot');
+            in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
             in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
             
             sim(in);
