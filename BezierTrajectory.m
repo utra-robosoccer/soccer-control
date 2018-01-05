@@ -46,7 +46,7 @@ classdef BezierTrajectory < handle
                 return
             elseif min(t) < 0
                 error('Invalid time supplied');
-            elseif length(t) == 1&& t > obj.duration
+            elseif length(t) == 1 && t > obj.duration
                 x = obj.positionAtTime(obj.duration) + ...
                     obj.speedAtTime(obj.duration) * (t - obj.duration);
                 return
