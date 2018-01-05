@@ -1,5 +1,5 @@
 classdef BezierTrajectory < handle
-    %BEZIERTRAJECTORY Defines a general purpose 1D bezier trajectory
+%BEZIERTRAJECTORY Defines a general purpose 1D bezier trajectory
     
     properties
         order = 0;
@@ -11,11 +11,31 @@ classdef BezierTrajectory < handle
     
     methods
         function obj = BezierTrajectory(duration, varargin)
-            %BEZIERTRAJECTORY creates a bezier trajectory between points
-            %
-            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
-            %    OBJ = BEZIERTRAJECTORY(DURATION, UPDATE_INTERVAL, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
+        %BEZIERTRAJECTORY creates a bezier trajectory between points
+        %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
+        %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
+        %
+        %   Produces a one-dimensional Bezier trajectory based on the
+        %   provided boundary conditions. Currently supports third and
+        %   fourth order Bezier curves.
+        %
+        %
+        %   Arguments
+        %
+        %   DURATION = [1 x 1]
+        %       The time to move between the two positions
+        %
+        %   PREV_POS, NEXT_POS = [1 x 1]
+        %       The starting and ending positions of the foot in the x-axis
+        %
+        %   PREV_SPEED, NEXT_SPEED = [1 x 1]
+        %       The starting and ending speeds of the foot in the x-axis
+        %
+        %   HEIGHT = [1 x 1]
+        %       The peak height during mid-swing of the cycle
+        
             if nargin > 0
+                % A single BezierTrajectory
                 if isscalar(varargin{1})
                     obj.order = length(varargin) - 1;
                     obj.duration = duration;
@@ -37,8 +57,11 @@ classdef BezierTrajectory < handle
                         error(['Undefined Bezier Order: Please check input ' ...
                             'arguments or add a new definition'])
                     end
+                % An array of BezierTrajectory
                 else
                     for i = length(duration):-1:1
+                        % Extract the ith argument and use it to construct
+                        % a single Bezier
                         args_i = num2cell(cellfun(@(x) x(i), varargin));
                         obj(i) = BezierTrajectory(duration(i), args_i{:});
                     end
@@ -48,17 +71,37 @@ classdef BezierTrajectory < handle
         
         function x = positionAtTime(obj, t)
             %POSITIONATTIME returns the position at time t
+            %   X = POSITIONATTIME(OBJ, T)
+            %
+            %   Gives the position at the specified time. Can be vectorized, 
+            %   producing a list of positons correspoinding to the array of t   
+            %
+            %
+            %   Arguments
+            %
+            %   T = [1 x 1]
+            %       The time to retrieve the positon at
+            %
+            %
+            %   Outputs
+            %
+            %   X = [1 x 1]
+            %       The position at time t
+            
             if isempty(t)
                 x = 0;
                 return
             elseif min(t) < 0
                 error('Invalid time supplied');
             elseif length(t) == 1 && t > obj.duration
+                % Linear extrapolation of the position
                 x = obj.positionAtTime(obj.duration) + ...
                     obj.speedAtTime(obj.duration) * (t - obj.duration);
                 return
             end
             x = 0;
+            
+            % Evaluate the Bezier function per parameter
             for i = 0:obj.order
                 x = x + obj.parameters(i+1) * ...
                 (obj.duration - t).^(obj.order-i) .* t.^i;
@@ -66,8 +109,27 @@ classdef BezierTrajectory < handle
             x = x ./ obj.duration^obj.order;
         end
         
-        function v = speedAtTime(obj, t)
-            %SPEEDATTIME returns the speed at time t
+        function v = speedAtTime(obj, t)            
+        %POSITIONATTIME returns the speed at time t
+        %   X = POSITIONATTIME(OBJ, T)
+        %
+        %   Gives the speed at the specified time. Can be vectorized, 
+        %   producing a list of speeds correspoinding to the array of t.
+        %   Note that the speed is created by a centered secant based on
+        %   the secant_size parameter of the class.
+        %
+        %
+        %   Arguments
+        %
+        %   T = [1 x 1]
+        %       The time to retrieve the speed at
+        %
+        %
+        %   Outputs
+        %
+        %   V = [1 x 1]
+        %       The speed at time t
+        
             tp = min(t + obj.secant_size, obj.duration);
             tm = max(t - obj.secant_size, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);

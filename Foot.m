@@ -1,5 +1,5 @@
 classdef Foot
-    %FOOT enumerates foot position
+    %FOOT enumerates foot sides
     
     enumeration
         Left
@@ -9,6 +9,7 @@ classdef Foot
     methods
         
         function obj = not(obj)
+        %NOT returns the opposite foot
             if obj == Foot.Left
                 obj = Foot.Right;
             else

@@ -8,6 +8,28 @@ classdef Footstep < Pose
     
     methods
         function obj = Footstep(x, y, q, side, time)
+        %FOOTSTEP Cconstructor
+        %   OBJ = FOOTSTEP()
+        %   OBJ = FOOTSTEP(X, Y, Q, SIDE, TIME)
+        %
+        %   A specific location in the global plane where the foot should
+        %   fall at the end of the swing cycle.
+        %
+        %
+        %   Arguments
+        %
+        %   X, Y = [1 x 1]
+        %       The location of the footstep
+        %
+        %   Q = [1 x 1]
+        %       The angle of the footstep in the x-y plane
+        %
+        %   SIDE = FOOT
+        %       Which foot this step corresponds to
+        %
+        %   TIME = [1 x 1]
+        %       When this footstep happens relative in body-trajectory time
+        
             if nargin == 0
                 x = 0; y = 0; q = 0; side = Foot.Left; time = 0;
             end
@@ -19,6 +41,28 @@ classdef Footstep < Pose
     
     methods(Static)
         function footsteps = generateFootsteps(path, next_foot, cur_foot)
+        %GENERATEFOOTSTEPS produces footsteps along a body path
+        %   FOOTSTEPS = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
+        %
+        %   Produces a list of foot steps to travel along the body path
+        %   provided, starting with the feet given
+        %
+        %
+        %   Arguments
+        %
+        %   PATH = Trajectory
+        %       The idealized path the the body should travel along
+        %
+        %   NEXT_FOOT, CUR_FOOT = FootStep
+        %       The footstep corresponding to the next swing foot and the
+        %       next stance foot, respectively.
+        %
+        %
+        %   Outputs
+        %
+        %   FOOTSTEPS = [N x 1] Footstep
+        %       The footsteps that the robot should follow
+        
             airtime = 0.5;
             n_steps = path.x.duration/airtime;
             footsteps = repmat(Footstep(), ceil(n_steps)+2, 1);

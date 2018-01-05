@@ -1,20 +1,32 @@
 function q = ikine(dh, x6, y6, z6, g, q0)
-% Function: q_traj = invkin(dh, x3_traj, z3_traj, psi3_traj, q0)
+%IKINE returns joint angles to produces ee position
+%   Q = IKINE(DH, X6, Z6, G, Q0)
 % 
-% Description: Generates the joint angle trajectories from the given end
-% effector trajectories and initial state information
+%   Uses an analytical inverse kinematics to produce the joint angles
+%   required to produced the deisred position and orientation for the foot.
 %
-% Parameters:
-%   dh : The Denavit-Hartenburg matrix for the leg
-%   x3_traj : The x-coordinate in the frame {0} over time
-%   z3_traj : The z-coordinate in the frame {0} over time
-%   psi3_traj : The orientation of the last link in the frame {0} over time
-%   q0 : The initial angle of the joints at AEP
-% 
-% Return:
-%   q_traj : The joint angles of the leg's trajectory
 %
-%   TODO: All of the above is incorrect
+%   Arguments
+%
+%   DH = [6 x 4]
+%       The denavit-hartenburg parameters responding to the 6 revolute
+%       joints of the leg. The third element in each row is the link length,
+%       and is the only relevant item.
+%
+%   X6, Y6, Z6 = [1 x 1]
+%       The position of the foot end relative to hip
+%
+%   G = [1 x 1]
+%       Vertical angle of the foot
+%
+%   Q0 = [1 x 1]
+%       The angle of the foot in the x-y plane
+%       
+%
+%   Outputs
+%
+%   Q = [6 x 1]
+%       The joint angles produce by the inverse kinematics
 
 
 % x6, y6, z6 are relative coordinates of end effector relative to hip
