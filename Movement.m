@@ -16,7 +16,7 @@ classdef Movement < handle
         stance_time = 0.75;
         swing_time = 0.25;
         hip_height = 0.18;
-        body_height = 0.169;
+        body_height = 0.099;
         link_lengths = [0.089 0.08253 0.037];
         
         forw_smoothing = 0.94;
@@ -34,11 +34,11 @@ classdef Movement < handle
         cur_left = 0;
         cur_right = 0;
         
-        inward = 0.03;
+        inward = 0.035;
         leg_in = 0;
         
         dh = [
-            0.0650     -pi/2         0      pi/2
+            0.0250     -pi/2         0      pi/2
                  0      pi/2         0     -pi/2
                  0         0    0.0890         0
                  0         0    0.0825         0
