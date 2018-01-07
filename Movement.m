@@ -135,7 +135,7 @@ classdef Movement < handle
             end
             obj.cur_left = left_foot;
             obj.cur_right = right_foot;
-            obj.cur_pos = obj.path.x(1).positionAtTime(obj.body_time);
+            obj.cur_pos = obj.path(1).x.positionAtTime(obj.body_time);
             
             % Update the body position relative to the path
             % If there is nothing, the body stays over the foot
@@ -177,6 +177,9 @@ classdef Movement < handle
                 new_body_pos(2) = obj.inward;
             end
             % Exponential smoothing of the body movement 
+            if obj.body_time >= 9.99
+                keyboard
+            end
             obj.body_pos(1) = (1 - obj.forw_smoothing) * new_body_pos(1) + obj.forw_smoothing * obj.body_pos(1);
             obj.body_pos(2) = (1 - obj.side_smoothing) * new_body_pos(2) + obj.side_smoothing * obj.body_pos(2); 
             
@@ -263,14 +266,14 @@ classdef Movement < handle
             % Generate body trajectories to the next pose
             if obj.body_time > obj.durations(1)
                 obj.body_time = 0;
-                if length(obj.path.x) == 2
+                if length(obj.path) == 2
                     obj.poses = obj.poses(2:end);
                     obj.durations = obj.durations(2:end);
-                    obj.path.x = obj.path.x(2);
+                    obj.path = obj.path(2);
                 elseif ~isempty(obj.path.x)
                     obj.poses = obj.poses(2);
                     obj.durations = 0;
-                    obj.path.x = Trajectory.empty();
+                    obj.path = Trajectory.empty();
                 end
             end
             
@@ -278,7 +281,7 @@ classdef Movement < handle
                 obj.path(2) = Trajectory.plannedPath(obj.durations(2), ...
                     obj.poses(2), obj.poses(3));
                 obj.footsteps = [obj.footsteps(1:end-2), ...
-                    Footstep.generateFootsteps(obj.path, ...
+                    Footstep.generateFootsteps(obj.path(2), ...
                     obj.footsteps(end-1), obj.footsteps(end))'];
             elseif isempty(obj.path) && length(obj.poses) >= 2
                 obj.path = Trajectory.plannedPath(obj.durations(1), ...
@@ -328,9 +331,15 @@ classdef Movement < handle
                         obj.footsteps(3).time - obj.body_time);
                     obj.updateFootTraj();
                 elseif length(obj.footsteps) >= 5
-                    obj.left_traj(2) = FootCycle(obj.path.x, obj.footsteps(3), ...
-                        obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
-                        obj.stance_time, obj.stance_time + obj.swing_time);
+                    if obj.footsteps(3).time > obj.body_time
+                        obj.left_traj(2) = FootCycle(obj.path(1).x, obj.footsteps(3), ...
+                            obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
+                            obj.stance_time, obj.stance_time + obj.swing_time);
+                    else
+                        obj.left_traj(2) = FootCycle(obj.path(2).x, obj.footsteps(3), ...
+                            obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
+                            obj.stance_time, obj.stance_time + obj.swing_time);
+                    end
                 end
                 if isempty(obj.right_traj) && length(obj.footsteps) >= 4
                     obj.right_traj(1) = FootCycle(obj.path.x, obj.footsteps(2), ...
@@ -339,28 +348,34 @@ classdef Movement < handle
                         obj.footsteps(4).time - obj.body_time);
                     obj.updateFootTraj();
                 elseif length(obj.footsteps) >= 6
-                    obj.right_traj(2) = FootCycle(obj.path.x, obj.footsteps(4), ...
-                        obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
-                        obj.stance_time, obj.stance_time + obj.swing_time);
+                    if obj.footsteps(4).time > obj.body_time
+                        obj.right_traj(2) = FootCycle(obj.path(1).x, obj.footsteps(4), ...
+                            obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
+                            obj.stance_time, obj.stance_time + obj.swing_time);
+                    else
+                        obj.right_traj(2) = FootCycle(obj.path(2).x, obj.footsteps(4), ...
+                            obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
+                            obj.stance_time, obj.stance_time + obj.swing_time);
+                    end
                 end
             else
                 if isempty(obj.right_traj) && length(obj.footsteps) >= 3
-                    obj.right_traj(1) = FootCycle(obj.path.x, obj.footsteps(1), ...
+                    obj.right_traj(1) = FootCycle(obj.path(1).x, obj.footsteps(1), ...
                         obj.footsteps(3), obj.step_height, obj.body_time, ...
                         obj.footsteps(3).time - obj.body_time - obj.swing_time, ...
                         obj.footsteps(3).time - obj.body_time);
                 elseif length(obj.footsteps) >= 5
-                    obj.right_traj(2) = FootCycle(obj.path.x, obj.footsteps(3), ...
+                    obj.right_traj(2) = FootCycle(obj.path(1).x, obj.footsteps(3), ...
                         obj.footsteps(5), obj.step_height, obj.footsteps(3).time, ...
                         obj.stance_time, obj.stance_time + obj.swing_time);
                 end
                 if isempty(obj.left_traj) && length(obj.footsteps) >= 4
-                    obj.left_traj(1) = FootCycle(obj.path.x, obj.footsteps(2), ...
+                    obj.left_traj(1) = FootCycle(obj.path(1).x, obj.footsteps(2), ...
                         obj.footsteps(4), obj.step_height, obj.body_time, ...
                         obj.footsteps(4).time - obj.body_time - obj.swing_time, ...
                         obj.footsteps(4).time - obj.body_time);
                 elseif length(obj.footsteps) >= 6
-                    obj.left_traj(2) = FootCycle(obj.path.x, obj.footsteps(4), ...
+                    obj.left_traj(2) = FootCycle(obj.path(1).x, obj.footsteps(4), ...
                         obj.footsteps(6), obj.step_height, obj.footsteps(4).time, ...
                         obj.stance_time, obj.stance_time + obj.swing_time);
                 end
@@ -382,8 +397,8 @@ classdef Movement < handle
             if obj.footsteps(3).time - obj.body_time > obj.swing_time
                 start_time = obj.footsteps(2).time;
                 end_time = obj.footsteps(3).time - obj.swing_time;
-                start_x = obj.footsteps(1).x - obj.path.x(1).positionAtTime(start_time);
-                end_x = obj.footsteps(2).x - obj.path.x(1).positionAtTime(end_time);
+                start_x = obj.footsteps(1).x - obj.path(1).x.positionAtTime(start_time);
+                end_x = obj.footsteps(2).x - obj.path(1).x.positionAtTime(end_time);
                 if obj.footsteps(3).side == Foot.Left
                     start_y = obj.inward;
                     end_y = -obj.inward;
@@ -399,8 +414,8 @@ classdef Movement < handle
                 else
                     end_time = start_time + (obj.stance_time - 2*obj.swing_time)/2;
                 end
-                start_x = obj.footsteps(2).x - obj.path.x(1).positionAtTime(start_time);
-                end_x = obj.footsteps(3).x - obj.path.x(1).positionAtTime(end_time);
+                start_x = obj.footsteps(2).x - obj.path(1).x.positionAtTime(start_time);
+                end_x = obj.footsteps(3).x - obj.path(1).x.positionAtTime(end_time);
                 if obj.footsteps(3).side == Foot.Right
                     start_y = obj.inward;
                     end_y = -obj.inward;
