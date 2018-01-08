@@ -13,9 +13,10 @@ classdef Movement < handle
         cur_side = Foot.empty();
         
         step_height = 0.05;
-        stance_time = 0.75;
-        swing_time = 0.25;
-        hip_height = 0.18;
+        stance_time = 1.5;
+        swing_time = 0.5;
+        cycle_time = 2;
+        hip_height = 0.16;
         body_height = 0.099;
         link_lengths = [0.089 0.08253 0.037];
         
@@ -23,6 +24,7 @@ classdef Movement < handle
         forw_look_ahead = 0.1;
         side_smoothing = 0.94;
         side_look_ahead = 0.1;
+        switch_time = 1.0;
         
         body_time = 0;
         left_time = 0;
@@ -31,11 +33,11 @@ classdef Movement < handle
         cur_angles = zeros(2,6);
         cur_pos = 0;
         body_pos = [0 0];
-        cur_left = 0;
+        cur_left = 1;
         cur_right = 0;
         
-        inward = 0.035;
-        leg_in = 0;
+        inward = 0.040;
+        leg_in = 0.00;
         
         dh = [
             0.0250     -pi/2         0      pi/2
@@ -73,8 +75,8 @@ classdef Movement < handle
             
             % Determines the initial joint angle of the robot
             %TODO should not depend on footstep position
-            obj.cur_angles(1,3) = 0.01;
-            obj.cur_angles(2,3) = 0.01;
+            obj.cur_angles(1,3) = 1;
+            obj.cur_angles(2,3) = 1;
             next_angles = ikine(obj.dh, next_foot.x, obj.leg_in, -obj.hip_height, ...
                 0, obj.cur_angles(1,:));
             prev_angles = ikine(obj.dh, prev_foot.x, -obj.leg_in, -obj.hip_height, ...
@@ -124,7 +126,7 @@ classdef Movement < handle
             if ~isempty(obj.left_traj)
                 left_foot = obj.left_traj(1).positionAtTime(obj.left_time);
             else
-                x_change = obj.path.x(1).positionAtTime(obj.body_time) - obj.cur_pos;
+                x_change = obj.path(1).x.positionAtTime(obj.body_time) - obj.cur_pos;
                 left_foot = obj.cur_left - [x_change, 0];
             end
             if ~isempty(obj.right_traj)
@@ -177,9 +179,6 @@ classdef Movement < handle
                 new_body_pos(2) = obj.inward;
             end
             % Exponential smoothing of the body movement 
-            if obj.body_time >= 9.99
-                keyboard
-            end
             obj.body_pos(1) = (1 - obj.forw_smoothing) * new_body_pos(1) + obj.forw_smoothing * obj.body_pos(1);
             obj.body_pos(2) = (1 - obj.side_smoothing) * new_body_pos(2) + obj.side_smoothing * obj.body_pos(2); 
             
@@ -197,7 +196,7 @@ classdef Movement < handle
             obj.updatePath();
         end
         
-        function angles = simulate(obj, poses, durations)
+        function [angles, data] = simulate(obj, poses, durations, varargin)
         %SIMULATE runs a simulation of the movement and return angles
         %   ANGLES = SIMULATE(OBJ, POSES, DURATIONS)
         %
@@ -215,7 +214,11 @@ classdef Movement < handle
         %
         %   ANGLES = [12 x M]
         %       The joint angles used at each moment in the simulation
-        
+            
+            p = inputParser();
+            p.addParameter('SimulationMode', 'normal');
+            p.parse(varargin{:});
+            
             % Add all goal poses
             for i = 1:length(poses)
                 obj.addPose(poses(i), durations(i));
@@ -236,6 +239,7 @@ classdef Movement < handle
             % Simulate based on these angles
             in = Simulink.SimulationInput('biped_robot');
             in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
+            in = in.setModelParameter('SimulationMode', p.Results.SimulationMode);
             
             angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
             
@@ -245,7 +249,7 @@ classdef Movement < handle
             in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
             in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
             
-            sim(in);
+            data = sim(in);
         end
         
     end
@@ -281,13 +285,13 @@ classdef Movement < handle
                 obj.path(2) = Trajectory.plannedPath(obj.durations(2), ...
                     obj.poses(2), obj.poses(3));
                 obj.footsteps = [obj.footsteps(1:end-2), ...
-                    Footstep.generateFootsteps(obj.path(2), ...
+                    Footstep.generateFootsteps(obj.path(2), obj.cycle_time/2, ...
                     obj.footsteps(end-1), obj.footsteps(end))'];
             elseif isempty(obj.path) && length(obj.poses) >= 2
                 obj.path = Trajectory.plannedPath(obj.durations(1), ...
                     obj.poses(1), obj.poses(2));
                 obj.footsteps = [obj.footsteps(1:end-2), ...
-                    Footstep.generateFootsteps(obj.path, ...
+                    Footstep.generateFootsteps(obj.path, obj.cycle_time/2, ...
                     obj.footsteps(end-1), obj.footsteps(end))'];
                 obj.updatePath();
             end
@@ -414,6 +418,9 @@ classdef Movement < handle
                 else
                     end_time = start_time + (obj.stance_time - 2*obj.swing_time)/2;
                 end
+                if end_time < 0
+                    keyboard
+                end
                 start_x = obj.footsteps(2).x - obj.path(1).x.positionAtTime(start_time);
                 end_x = obj.footsteps(3).x - obj.path(1).x.positionAtTime(end_time);
                 if obj.footsteps(3).side == Foot.Right
@@ -425,8 +432,13 @@ classdef Movement < handle
                 end
                 cur_time = obj.body_time + obj.forw_look_ahead - obj.footsteps(3).time;
             end
-            pos(1) = start_x + (end_x - start_x)/(end_time - start_time) * cur_time;
-            pos(2) = - start_y/(end_time - start_time) * cur_time;
+            if cur_time > obj.switch_time
+                pos(1) = end_x;
+                pos(2) = -start_y;
+            else
+                pos(1) = start_x + (end_x - start_x)/obj.switch_time * cur_time;
+                pos(2) = - start_y/obj.switch_time * cur_time;
+            end
         end
     end
     

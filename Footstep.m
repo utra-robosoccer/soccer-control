@@ -40,7 +40,7 @@ classdef Footstep < Pose
     end
     
     methods(Static)
-        function footsteps = generateFootsteps(path, next_foot, cur_foot)
+        function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot)
         %GENERATEFOOTSTEPS produces footsteps along a body path
         %   FOOTSTEPS = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
         %
@@ -63,12 +63,11 @@ classdef Footstep < Pose
         %   FOOTSTEPS = [N x 1] Footstep
         %       The footsteps that the robot should follow
         
-            airtime = 0.5;
             n_steps = path.x.duration/airtime;
             footsteps = repmat(Footstep(), ceil(n_steps)+2, 1);
             footsteps(1:2) = [cur_foot, next_foot];
 
-            for i = 1:floor(n_steps)
+            for i = 1:ceil(n_steps)
                 x_m = path.x.positionAtTime((i+0.5)*airtime);
                 y_m = path.y.positionAtTime((i+0.5)*airtime);
                 x_m1 = path.x.positionAtTime((i+0.5)*airtime + path.x.secant_size);
