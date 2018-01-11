@@ -1,4 +1,4 @@
-function SequenceConversion(varargin)
+function trajectories = SequenceConversion(varargin)
 %SEQUENCECONVERSION interpolates between several joint positions 
 %   SEQUENCECONVERSION(POSITIONS, DURATIONS)
 %   SEQUENCECONVERSION(POSITIONS, DURATIONS, SPEEDS)
@@ -78,6 +78,6 @@ NUM_MOTORS = 16;
 
 %% Output to File    
 
-    csvwrite(file, trajectories);
+%     csvwrite(file, trajectories);
     
 end
