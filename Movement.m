@@ -38,6 +38,7 @@ classdef Movement < handle
         
         inward = 0.040;
         leg_in = 0.00;
+        forward = 0.01;
         
         dh = [
             0.0250     -pi/2         0      pi/2
@@ -77,9 +78,9 @@ classdef Movement < handle
             %TODO should not depend on footstep position
             obj.cur_angles(1,3) = 1;
             obj.cur_angles(2,3) = 1;
-            next_angles = ikine(obj.dh, next_foot.x, obj.leg_in, -obj.hip_height, ...
+            next_angles = ikine(obj.dh, next_foot.x - obj.forward, obj.leg_in, -obj.hip_height, ...
                 0, obj.cur_angles(1,:));
-            prev_angles = ikine(obj.dh, prev_foot.x, -obj.leg_in, -obj.hip_height, ...
+            prev_angles = ikine(obj.dh, prev_foot.x - obj.forward, -obj.leg_in, -obj.hip_height, ...
                 0, obj.cur_angles(2,:));
             if next_foot.side == Foot.Left
                 obj.cur_angles = [next_angles';  prev_angles'];
@@ -200,8 +201,8 @@ classdef Movement < handle
             rel_right = obj.cur_right - [obj.body_pos(1) obj.hip_height];
             
             % Calculate necessary joint angles
-            q_left = ikine(obj.dh, rel_left(1), obj.leg_in + obj.body_pos(2), rel_left(2), 0, obj.cur_angles(1, :));
-            q_right = ikine(obj.dh, rel_right(1), -obj.leg_in + obj.body_pos(2), rel_right(2), 0, obj.cur_angles(2, :));
+            q_left = ikine(obj.dh, rel_left(1) - obj.forward, obj.leg_in + obj.body_pos(2), rel_left(2), 0, obj.cur_angles(1, :));
+            q_right = ikine(obj.dh, rel_right(1) - obj.forward, -obj.leg_in + obj.body_pos(2), rel_right(2), 0, obj.cur_angles(2, :));
             
             obj.cur_angles = [q_left'; q_right'];
             angles = [q_left' q_right'];
