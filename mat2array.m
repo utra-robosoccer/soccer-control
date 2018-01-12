@@ -5,7 +5,7 @@ function mat2array(data)
     fprintf(param_c, '#define SIZE %d\n', (size(test_data,2)));
     fprintf(param_c, '#define DIM %d\n\n', (size(test_data,1)));
 
-    fprintf(param_c, 'const double angles [DIM][SIZE] = {\n');
+    fprintf(param_c, 'const double MOTORANGLES [DIM][SIZE] = {\n');
     % Fixed Point Conversion
     for i = 1:((size(test_data,1))/2)
         fprintf(param_c, '\t{');
