@@ -12,12 +12,23 @@ param_c = fopen('angles.h','w');             % Change the output file name
 fprintf(param_c, '#define SIZE %d\n', (size(test_data,2)));
 fprintf(param_c, '#define DIM %d\n\n', (size(test_data,1)));
 
-fprintf(param_c, 'const double angles [DIM][SIZE] = {\n');
+fprintf(param_c, 'const double MOTORANGLES [DIM][SIZE] = {\n');
 % Fixed Point Conversion
-for i = 1:(size(test_data,1))
+for i = 1:((size(test_data,1))/2)
     fprintf(param_c, '\t{');
     for j = 1:(size(test_data,2))
-        a = test_data(i,j);
+        a = test_data(7 - i,j);
+        fprintf(param_c, '%.10f', a);
+        if j ~= size(test_data,2)
+            fprintf(param_c, ', ');
+        end
+    end
+    fprintf(param_c, '},\n');
+end
+for i = 1:((size(test_data,1))/2)
+    fprintf(param_c, '\t{');
+    for j = 1:(size(test_data,2))
+        a = test_data(i + 6,j);
         fprintf(param_c, '%.10f', a);
         if j ~= size(test_data,2)
             fprintf(param_c, ', ');

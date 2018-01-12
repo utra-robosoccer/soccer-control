@@ -1,5 +1,4 @@
 function mat2array(data)
-    format long e
     test_data = data;
     % test_data = csvread("dataset_test.csv");    % Change the input file name
     param_c = fopen('angles.h','w');             % Change the output file name
@@ -8,10 +7,21 @@ function mat2array(data)
 
     fprintf(param_c, 'const double angles [DIM][SIZE] = {\n');
     % Fixed Point Conversion
-    for i = 1:(size(test_data,1))
+    for i = 1:((size(test_data,1))/2)
         fprintf(param_c, '\t{');
         for j = 1:(size(test_data,2))
-            a = test_data(i,j);
+            a = test_data(7 - i,j);
+            fprintf(param_c, '%.10f', a);
+            if j ~= size(test_data,2)
+                fprintf(param_c, ', ');
+            end
+        end
+        fprintf(param_c, '},\n');
+    end
+    for i = 1:((size(test_data,1))/2)
+        fprintf(param_c, '\t{');
+        for j = 1:(size(test_data,2))
+            a = test_data(i + 6,j);
             fprintf(param_c, '%.10f', a);
             if j ~= size(test_data,2)
                 fprintf(param_c, ', ');
