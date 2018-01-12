@@ -12,7 +12,7 @@ classdef Movement < handle
         right_traj = FootCycle.empty();
         cur_side = Foot.empty();
         
-        step_height = 0.05;
+        step_height = 0.04;
         stance_time = 1.5;
         swing_time = 0.5;
         cycle_time = 2;
@@ -86,6 +86,19 @@ classdef Movement < handle
             else 
                 obj.cur_angles = [prev_angles';  next_angles'];
             end
+        end
+        
+        function configureTunable(obj, parameters)
+            obj.forw_smoothing = parameters(1);
+            obj.forw_look_ahead = parameters(2);
+            obj.side_smoothing = parameters(3);
+            obj.side_look_ahead = parameters(4);
+            obj.switch_time = parameters(5);
+            obj.inward = parameters(6);
+            obj.leg_in = parameters(7);
+            obj.stance_time = parameters(8);
+            obj.swing_time = parameters(9);
+            obj.cycle_time = parameters(8) + parameters(9);
         end
         
         function addPose(obj, pose, duration)
@@ -249,7 +262,7 @@ classdef Movement < handle
             in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
             in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
             
-            data = sim(in);
+%             data = sim(in);
         end
         
     end

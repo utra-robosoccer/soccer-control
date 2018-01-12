@@ -104,7 +104,9 @@ classdef Footstep < Pose
                 next_q = atan2(delta_y, delta_x);
 
                 footsteps(i+2) = Footstep(next_step(1), next_step(2), next_q, next_side, airtime*i);
-
+                if isnan(footsteps(i+2).x)
+                    footsteps(i+2).x = 0;
+                end
             end
         end
     end
