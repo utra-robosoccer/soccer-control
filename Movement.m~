@@ -202,12 +202,11 @@ classdef Movement < handle
             rel_left = obj.cur_left - [obj.body_pos(1) obj.hip_height];
             rel_right = obj.cur_right - [obj.body_pos(1) obj.hip_height];
             
-            offset_y = 0;
-            if rel_right(2) ~= rel_left(2)
-                if rel_right(2) < rel_left(2)
-                    offset_y = -0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
-                elseif rel_right(2) < rel_left(2)
-                    offset_y =  0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
+            if coord_in(6, i) ~= coord_in(3, i)
+                if coord_in(6, i) < coord_in(3, i)
+                    offset_y = -0.02 * min((coord_in(3, i) - coord_in(6, i))/0.008, 1);
+                elseif coord_in(6, i) < coord_in(3, i)
+                    offset_y =  0.02 * min((coord_in(3, i) - coord_in(6, i))/0.008, 1);
                 end
             else
                 offset_y = 0;
@@ -215,37 +214,9 @@ classdef Movement < handle
 
             % Calculate necessary joint angles
             q_left = ikine(obj.dh, rel_left(1) - obj.forward, ...
-                obj.leg_in + obj.body_pos(2) + obj.side_bias + offset_y, rel_left(2), 0, obj.cur_angles(1, :));
+                obj.leg_in + obj.body_pos(2) + obj.side_bias, rel_left(2), 0, obj.cur_angles(1, :));
             q_right = ikine(obj.dh, rel_right(1) - obj.forward, ...
-                -obj.leg_in + obj.body_pos(2) + obj.side_bias + offset_y, rel_right(2), 0, obj.cur_angles(2, :));
-            
-            if rel_right(2) ~= rel_left(2)
-                if rel_right(2) < rel_left(2)
-                    q_left(2) = q_left(2) + ...
-                       -deg2rad(6) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_left(5) = q_left(5) + ...
-                        deg2rad(2) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_right(2) = q_right(2) + ...
-                        deg2rad(12) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_right(5) = q_right(5) + ...
-                        deg2rad(0) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                elseif rel_right(2) > rel_left(2)
-                    q_left(2) = q_left(2) + ...
-                       -deg2rad(12) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(3) = q_left(3) + ...
-                        deg2rad(4) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(4) = q_left(4) + ...
-                        deg2rad(2) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(5) = q_left(5) + ...
-                        deg2rad(3) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(6) = q_left(6) + ...
-                       -deg2rad(6) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_right(2) = q_right(2) + ...
-                        deg2rad(6) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_right(5) = q_right(5) + ...
-                        deg2rad(0) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                end
-            end
+                -obj.leg_in + obj.body_pos(2) + obj.side_bias, rel_right(2), 0, obj.cur_angles(2, :));
             
             obj.cur_angles = [q_left'; q_right'];
             angles = [q_left' q_right'];

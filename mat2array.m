@@ -7,7 +7,7 @@ function mat2array(data)
 
     fprintf(param_c, 'const double MOTORANGLES [DIM][SIZE] = {\n');
     % Fixed Point Conversion
-    for i = 1:((size(test_data,1))/2)
+    for i = 1:6
         fprintf(param_c, '\t{');
         for j = 1:(size(test_data,2))
             a = test_data(7 - i,j);
@@ -18,7 +18,7 @@ function mat2array(data)
         end
         fprintf(param_c, '},\n');
     end
-    for i = 1:((size(test_data,1))/2)
+    for i = 1:6
         fprintf(param_c, '\t{');
         for j = 1:(size(test_data,2))
             a = test_data(i + 6,j);
@@ -28,6 +28,19 @@ function mat2array(data)
             end
         end
         fprintf(param_c, '},\n');
+    end
+    if size(test_data, 1) > 12
+        for i = 1:4
+            fprintf(param_c, '\t{');
+            for j = 1:(size(test_data,2))
+                a = test_data(i + 12,j);
+                fprintf(param_c, '%.10f', a);
+                if j ~= size(test_data,2)
+                    fprintf(param_c, ', ');
+                end
+            end
+            fprintf(param_c, '},\n');
+        end
     end
     fprintf(param_c, '};\n\n');
     fclose(param_c);

@@ -69,7 +69,7 @@ NUM_MOTORS = 16;
             positions(:, i-1), positions(:, i), speeds(:, i-1), speeds(:, i));
         % Cycle through these trajectories over their duration and store
         for t = update_interval:update_interval:durations(i-1)
-            trajectories(:, round(t/update_interval + last_time)) = ...
+            trajectories(:, round(t/update_interval + last_time/update_interval)) = ...
                 arrayfun(@(x) x.positionAtTime(t), traj);
         end
         % Update the time curresponding to the last position
