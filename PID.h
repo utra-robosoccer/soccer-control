@@ -9,7 +9,7 @@
  *
  * Model version                  : 1.13
  * Simulink Coder version         : 8.12 (R2017a) 16-Feb-2017
- * C/C++ source code generated on : Mon Feb 19 19:59:34 2018
+ * C/C++ source code generated on : Mon Feb 19 21:13:51 2018
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Intel->x86-64 (Windows64)
@@ -31,32 +31,19 @@
 
 /* Macros for accessing real-time model data structure */
 
+/* Forward declaration for rtModel */
+typedef struct tag_RTM_PID_T RT_MODEL_PID_T;
+
 /* Block signals and states (auto storage) for system '<Root>' */
 typedef struct {
   real_T Integrator_DSTATE;            /* '<S1>/Integrator' */
   real_T Filter_DSTATE;                /* '<S1>/Filter' */
 } DW_PID_T;
 
-/* External inputs (root inport signals with auto storage) */
-typedef struct {
-  real_T Reference;                    /* '<Root>/Reference ' */
-  real_T Position;                     /* '<Root>/Position' */
-} ExtU_PID_T;
-
-/* External outputs (root outports fed by signals with auto storage) */
-typedef struct {
-  real_T Torque;                       /* '<Root>/Torque' */
-  real_T Direction;                    /* '<Root>/Direction' */
-} ExtY_PID_T;
-
-/* Block signals and states (auto storage) */
-extern DW_PID_T PID_DW;
-
-/* External inputs (root inport signals with auto storage) */
-extern ExtU_PID_T PID_U;
-
-/* External outputs (root outports fed by signals with auto storage) */
-extern ExtY_PID_T PID_Y;
+/* Real-time Model Data Structure */
+struct tag_RTM_PID_T {
+  DW_PID_T *dwork;
+};
 
 /*
  * Exported Global Parameters
@@ -86,9 +73,11 @@ extern uint32_T N;                     /* Variable: N
                                         */
 
 /* Model entry point functions */
-extern void PID_initialize(void);
-extern void PID_step(void);
-extern void PID_terminate(void);
+extern void PID_initialize(RT_MODEL_PID_T *const PID_M);
+extern void PID_step(RT_MODEL_PID_T *const PID_M, real_T PID_U_Reference, real_T
+                     PID_U_Position, real_T *PID_Y_Torque, real_T
+                     *PID_Y_Direction);
+extern void PID_terminate(RT_MODEL_PID_T *const PID_M);
 
 /*-
  * The generated code includes comments that allow you to trace directly

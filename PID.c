@@ -9,7 +9,7 @@
  *
  * Model version                  : 1.13
  * Simulink Coder version         : 8.12 (R2017a) 16-Feb-2017
- * C/C++ source code generated on : Mon Feb 19 19:59:34 2018
+ * C/C++ source code generated on : Mon Feb 19 21:13:51 2018
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Intel->x86-64 (Windows64)
@@ -43,18 +43,41 @@ uint32_T N = 100U;                     /* Variable: N
                                         * Referenced by: '<S1>/Filter Coefficient'
                                         */
 
-/* Block signals and states (auto storage) */
-DW_PID_T PID_DW;
+/*===========*
+ * Constants *
+ *===========*/
+#define RT_PI                          3.14159265358979323846
+#define RT_PIF                         3.1415927F
+#define RT_LN_10                       2.30258509299404568402
+#define RT_LN_10F                      2.3025851F
+#define RT_LOG10E                      0.43429448190325182765
+#define RT_LOG10EF                     0.43429449F
+#define RT_E                           2.7182818284590452354
+#define RT_EF                          2.7182817F
 
-/* External inputs (root inport signals with auto storage) */
-ExtU_PID_T PID_U;
+/*
+ * UNUSED_PARAMETER(x)
+ *   Used to specify that a function parameter (argument) is required but not
+ *   accessed by the function body.
+ */
+#ifndef UNUSED_PARAMETER
+# if defined(__LCC__)
+#   define UNUSED_PARAMETER(x)                                   /* do nothing */
+# else
 
-/* External outputs (root outports fed by signals with auto storage) */
-ExtY_PID_T PID_Y;
+/*
+ * This is the semi-ANSI standard way of indicating that an
+ * unused function parameter is required.
+ */
+#   define UNUSED_PARAMETER(x)         (void) (x)
+# endif
+#endif
 
 /* Model step function */
-void PID_step(void)
+void PID_step(RT_MODEL_PID_T *const PID_M, real_T PID_U_Reference, real_T
+              PID_U_Position, real_T *PID_Y_Torque, real_T *PID_Y_Direction)
 {
+  DW_PID_T *PID_DW = ((DW_PID_T *) PID_M->dwork);
   real_T rtb_FilterCoefficient;
   real_T rtb_SignDeltaU;
   real_T rtb_SignPreIntegrator;
@@ -72,8 +95,8 @@ void PID_step(void)
    *  Sum: '<S1>/Sum3'
    *  Sum: '<S1>/SumD'
    */
-  rtb_FilterCoefficient = ((c * PID_U.Reference - PID_U.Position) * D -
-    PID_DW.Filter_DSTATE) * (real_T)N;
+  rtb_FilterCoefficient = ((c * PID_U_Reference - PID_U_Position) * D -
+    PID_DW->Filter_DSTATE) * (real_T)N;
 
   /* Sum: '<S1>/Sum' incorporates:
    *  DiscreteIntegrator: '<S1>/Integrator'
@@ -83,8 +106,8 @@ void PID_step(void)
    *  Inport: '<Root>/Reference '
    *  Sum: '<S1>/Sum1'
    */
-  rtb_SignDeltaU = ((b * PID_U.Reference - PID_U.Position) * P +
-                    PID_DW.Integrator_DSTATE) + rtb_FilterCoefficient;
+  rtb_SignDeltaU = ((b * PID_U_Reference - PID_U_Position) * P +
+                    PID_DW->Integrator_DSTATE) + rtb_FilterCoefficient;
 
   /* Saturate: '<S1>/Saturate' */
   if (rtb_SignDeltaU > 1.0) {
@@ -100,18 +123,18 @@ void PID_step(void)
   /* Outport: '<Root>/Torque' incorporates:
    *  Abs: '<Root>/Abs'
    */
-  PID_Y.Torque = fabs(rtb_SignPreIntegrator);
+  *PID_Y_Torque = fabs(rtb_SignPreIntegrator);
 
   /* Signum: '<Root>/Sign' */
   if (rtb_SignPreIntegrator < 0.0) {
     /* Outport: '<Root>/Direction' */
-    PID_Y.Direction = -1.0;
+    *PID_Y_Direction = -1.0;
   } else if (rtb_SignPreIntegrator > 0.0) {
     /* Outport: '<Root>/Direction' */
-    PID_Y.Direction = 1.0;
+    *PID_Y_Direction = 1.0;
   } else {
     /* Outport: '<Root>/Direction' */
-    PID_Y.Direction = rtb_SignPreIntegrator;
+    *PID_Y_Direction = rtb_SignPreIntegrator;
   }
 
   /* End of Signum: '<Root>/Sign' */
@@ -146,7 +169,7 @@ void PID_step(void)
    *  Inport: '<Root>/Reference '
    *  Sum: '<S1>/Sum2'
    */
-  rtb_SignPreIntegrator = (PID_U.Reference - PID_U.Position) * I;
+  rtb_SignPreIntegrator = (PID_U_Reference - PID_U_Position) * I;
 
   /* Signum: '<S2>/SignPreIntegrator' */
   if (rtb_SignPreIntegrator < 0.0) {
@@ -190,22 +213,24 @@ void PID_step(void)
   /* End of Switch: '<S1>/Switch' */
 
   /* Update for DiscreteIntegrator: '<S1>/Integrator' */
-  PID_DW.Integrator_DSTATE += 0.001 * rtb_SignPreIntegrator;
+  PID_DW->Integrator_DSTATE += 0.001 * rtb_SignPreIntegrator;
 
   /* Update for DiscreteIntegrator: '<S1>/Filter' */
-  PID_DW.Filter_DSTATE += 0.001 * rtb_FilterCoefficient;
+  PID_DW->Filter_DSTATE += 0.001 * rtb_FilterCoefficient;
 }
 
 /* Model initialize function */
-void PID_initialize(void)
+void PID_initialize(RT_MODEL_PID_T *const PID_M)
 {
   /* (no initialization code required) */
+  UNUSED_PARAMETER(PID_M);
 }
 
 /* Model terminate function */
-void PID_terminate(void)
+void PID_terminate(RT_MODEL_PID_T *const PID_M)
 {
   /* (no terminate code required) */
+  UNUSED_PARAMETER(PID_M);
 }
 
 /*
