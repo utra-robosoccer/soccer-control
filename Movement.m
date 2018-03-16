@@ -288,19 +288,19 @@ classdef Movement < handle
             end
             
             % Simulate based on these angles
-%             in = Simulink.SimulationInput('biped_robot');
-%             in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
-%             in = in.setModelParameter('SimulationMode', p.Results.SimulationMode);
-%             
-%             angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
-%             
-%             in = in.setVariable('dh', obj.dh, 'Workspace', 'biped_robot');
-%             in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
-%             in = in.setVariable('q0_right', q0_right, 'Workspace', 'biped_robot');
-%             in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
-%             in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
+            in = Simulink.SimulationInput('biped_robot');
+            in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
+            in = in.setModelParameter('SimulationMode', p.Results.SimulationMode);
             
-%             data = sim(in);
+            angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
+            
+            in = in.setVariable('dh', obj.dh, 'Workspace', 'biped_robot');
+            in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
+            in = in.setVariable('q0_right', q0_right, 'Workspace', 'biped_robot');
+            in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
+            in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
+            
+            data = sim(in);
         end
         
     end
