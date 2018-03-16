@@ -24,10 +24,10 @@
 #include "PID.h"
 
 /* Exported block parameters */
-real_T D = 1.0;                        /* Variable: D
+real_T D = 0.0;                        /* Variable: D
                                         * Referenced by: '<S1>/Derivative Gain'
                                         */
-real_T I = 1.0;                        /* Variable: I
+real_T I = 0.0;                        /* Variable: I
                                         * Referenced by: '<S1>/Integral Gain'
                                         */
 real_T P = 1.0;                        /* Variable: P

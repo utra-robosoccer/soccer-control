@@ -41,6 +41,9 @@ classdef Movement < handle
         forward = 0.00;
         side_bias = 0.00;
         
+        height_offset_l = 0;
+        height_offset_r = 0;
+        
         dh = [
             0.0250     -pi/2         0      pi/2
                  0      pi/2         0     -pi/2
@@ -203,48 +206,39 @@ classdef Movement < handle
             rel_right = obj.cur_right - [obj.body_pos(1) obj.hip_height];
             
             offset_y = 0;
-            if rel_right(2) ~= rel_left(2)
-                if rel_right(2) < rel_left(2)
-                    offset_y = -0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
-                elseif rel_right(2) < rel_left(2)
-                    offset_y =  0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
-                end
-            else
-                offset_y = 0;
-            end
+%             if rel_right(2) ~= rel_left(2)
+%                 if rel_right(2) < rel_left(2)
+%                     offset_y = -0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
+%                 elseif rel_right(2) < rel_left(2)
+%                     offset_y =  0.02 * min((rel_left(2) - rel_right(2))/0.008, 1);
+%                 end
+%             else
+%                 offset_y = 0;
+%             end
 
             % Calculate necessary joint angles
             q_left = ikine(obj.dh, rel_left(1) - obj.forward, ...
-                obj.leg_in + obj.body_pos(2) + obj.side_bias + offset_y, rel_left(2), 0, obj.cur_angles(1, :));
+                obj.leg_in + obj.body_pos(2) + obj.side_bias, rel_left(2) + obj.height_offset_l, 0, obj.cur_angles(1, :));
             q_right = ikine(obj.dh, rel_right(1) - obj.forward, ...
-                -obj.leg_in + obj.body_pos(2) + obj.side_bias + offset_y, rel_right(2), 0, obj.cur_angles(2, :));
+                -obj.leg_in + obj.body_pos(2) + obj.side_bias, rel_right(2) + obj.height_offset_l, 0, obj.cur_angles(2, :));
             
             if rel_right(2) ~= rel_left(2)
                 if rel_right(2) < rel_left(2)
-                    q_left(2) = q_left(2) + ...
-                       -deg2rad(6) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_left(5) = q_left(5) + ...
+%                     obj.height_offset_l = min(obj.height_offset_l + 0.005, 0.01);
+                    q_right(2) = q_right(2) + ...
+                        deg2rad(14) * min((rel_left(2) - rel_right(2))/0.008, 1);
+                    q_right(3) = q_right(3) + ...
                         deg2rad(2) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_right(2) = q_right(2) + ...
-                        deg2rad(12) * min((rel_left(2) - rel_right(2))/0.008, 1);
-                    q_right(5) = q_right(5) + ...
-                        deg2rad(0) * min((rel_left(2) - rel_right(2))/0.008, 1);
                 elseif rel_right(2) > rel_left(2)
+%                     obj.height_offset_r = min(obj.height_offset_r + 0.005, 0.01);
                     q_left(2) = q_left(2) + ...
-                       -deg2rad(12) * min((rel_right(2) - rel_left(2))/0.008, 1);
+                       -deg2rad(14) * min((rel_right(2) - rel_left(2))/0.008, 1);
                     q_left(3) = q_left(3) + ...
-                        deg2rad(4) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(4) = q_left(4) + ...
-                        deg2rad(2) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(5) = q_left(5) + ...
-                        deg2rad(3) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_left(6) = q_left(6) + ...
-                       -deg2rad(6) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_right(2) = q_right(2) + ...
-                        deg2rad(6) * min((rel_right(2) - rel_left(2))/0.008, 1);
-                    q_right(5) = q_right(5) + ...
-                        deg2rad(0) * min((rel_right(2) - rel_left(2))/0.008, 1);
+                       deg2rad(2) * min((rel_right(2) - rel_left(2))/0.008, 1);
                 end
+            else
+                obj.height_offset_r = max(obj.height_offset_r - 0.005, 0);
+                obj.height_offset_l = max(obj.height_offset_l - 0.005, 0);
             end
             
             obj.cur_angles = [q_left'; q_right'];
@@ -294,17 +288,17 @@ classdef Movement < handle
             end
             
             % Simulate based on these angles
-            in = Simulink.SimulationInput('biped_robot');
-            in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
-            in = in.setModelParameter('SimulationMode', p.Results.SimulationMode);
-            
-            angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
-            
-            in = in.setVariable('dh', obj.dh, 'Workspace', 'biped_robot');
-            in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
-            in = in.setVariable('q0_right', q0_right, 'Workspace', 'biped_robot');
-            in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
-            in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
+%             in = Simulink.SimulationInput('biped_robot');
+%             in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(total_time));
+%             in = in.setModelParameter('SimulationMode', p.Results.SimulationMode);
+%             
+%             angles_ts = timeseries(angles, 0:obj.update_interval:total_time);
+%             
+%             in = in.setVariable('dh', obj.dh, 'Workspace', 'biped_robot');
+%             in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
+%             in = in.setVariable('q0_right', q0_right, 'Workspace', 'biped_robot');
+%             in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
+%             in = in.setVariable('init_body_height', obj.body_height, 'Workspace', 'biped_robot');
             
 %             data = sim(in);
         end
