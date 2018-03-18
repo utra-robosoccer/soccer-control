@@ -2,20 +2,24 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
     %TRAJECTORY Defines a 2D Bezier trajectory through space
     
     properties (Hidden)
-        x
-        y
+        data
+        dim = 0;
     end
     
     methods
         function pos = positionAtTime(obj, t)
-        %POSITIONATTIME produces the x and y position at time t
-            pos(1) = obj.x.positionAtTime(t);
-            pos(2) = obj.y.positionAtTime(t);
+        %POSITIONATTIME produces the positions at time t
+            pos = zeros(1, obj.dim);
+            for i = 1:obj.dim
+                pos(i) = obj.data(i).positionAtTime(t);
+            end
         end
         function speed = speedAtTime(obj, t)
-        %POSITIONATTIME produces the x and y speed at time t
-            speed(1) = obj.x.speedAtTime(t);
-            speed(2) = obj.y.speedAtTime(t);
+        %POSITIONATTIME produces the speeds at time t
+            speed = zeros(1, obj.dim);
+            for i = 1:obj.dim
+                speed(i) = obj.data(i).speedAtTime(t);
+            end
         end
     end
     
@@ -45,9 +49,11 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         %       The peak height during mid-swing of the cycle
         
             obj = Trajectories.Trajectory();
-            obj.x = Trajectories.BezierTrajectory(duration, ...
+            obj.dim = 2;
+            obj.data = Trajectories.BezierTrajectory.empty();
+            obj.data(1) = Trajectories.BezierTrajectory(duration, ...
                 prev_pos, next_pos, -prev_speed, -next_speed);
-            obj.y = Trajectories.BezierTrajectory(duration, ...
+            obj.data(2) = Trajectories.BezierTrajectory(duration, ...
                 0, 0, 0, 0, height);
         end
         
@@ -68,9 +74,11 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         %       The starting and ending poses of the body
         
             obj = Trajectories.Trajectory();
-            obj.x = Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
+            obj.dim = 2;
+            obj.data = Trajectories.BezierTrajectory.empty();
+            obj.data(1) = Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
                 prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
-            obj.y = Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+            obj.data(2) = Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
                 prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
         end
     end

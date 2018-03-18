@@ -63,17 +63,17 @@ classdef Footstep < Pose
         %   FOOTSTEPS = [N x 1] Footstep
         %       The footsteps that the robot should follow
         
-            n_steps = path.x.duration/airtime;
+            n_steps = path.data(1).duration/airtime;
             footsteps = repmat(Footstep(), ceil(n_steps)+2, 1);
             footsteps(1:2) = [cur_foot, next_foot];
 
             for i = 1:ceil(n_steps)
-                x_m = path.x.positionAtTime((i+0.5)*airtime);
-                y_m = path.y.positionAtTime((i+0.5)*airtime);
-                x_m1 = path.x.positionAtTime((i+0.5)*airtime + path.x.secant_size);
-                y_m1 = path.y.positionAtTime((i+0.5)*airtime + path.y.secant_size);
-                x_m2 = path.x.positionAtTime((i+0.5)*airtime + 2*path.x.secant_size);
-                y_m2 = path.y.positionAtTime((i+0.5)*airtime + 2*path.y.secant_size);
+                x_m = path.data(1).positionAtTime((i+0.5)*airtime);
+                y_m = path.data(2).positionAtTime((i+0.5)*airtime);
+                x_m1 = path.data(1).positionAtTime((i+0.5)*airtime + path.data(1).secant_size);
+                y_m1 = path.data(2).positionAtTime((i+0.5)*airtime + path.data(2).secant_size);
+                x_m2 = path.data(1).positionAtTime((i+0.5)*airtime + 2*path.data(1).secant_size);
+                y_m2 = path.data(2).positionAtTime((i+0.5)*airtime + 2*path.data(2).secant_size);
 
                 delta_x = x_m1 - x_m;
                 delta_y = y_m1 - y_m;
