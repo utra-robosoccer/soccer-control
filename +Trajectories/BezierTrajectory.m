@@ -1,4 +1,4 @@
-classdef BezierTrajectory < handle
+classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
 %BEZIERTRAJECTORY Defines a general purpose 1D bezier trajectory
     
     properties

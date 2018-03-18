@@ -1,9 +1,9 @@
-classdef FootCycle
+classdef FootCycle < Trajectories.GeneralizedTrajectory
     %FOOTCYCLE A full cycle (stance - swing) for one foot
     
     properties (Hidden)
-        stance = Trajectory.empty();
-        swing = Trajectory.empty();
+        stance = Trajectories.Trajectory.empty();
+        swing = Trajectories.Trajectory.empty();
         trans_time;
         duration;
     end
@@ -44,12 +44,12 @@ classdef FootCycle
             
             % If there exists a stance phase
             if trans_time > 0
-                obj.stance = Trajectory.footTrajectory(trans_time, ...
+                obj.stance = Trajectories.Trajectory.footTrajectory(trans_time, ...
                     init_pos, trans_pos, init_speed, trans_speed, 0);
             end
             % If there exists a swing phase
             if duration > trans_time
-                obj.swing = Trajectory.footTrajectory(duration - trans_time, ...
+                obj.swing = Trajectories.Trajectory.footTrajectory(duration - trans_time, ...
                     trans_pos, fin_pos, trans_speed, fin_speed, step_height);
             end
         end

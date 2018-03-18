@@ -1,4 +1,4 @@
-classdef Trajectory
+classdef Trajectory < Trajectories.GeneralizedTrajectory
     %TRAJECTORY Defines a 2D Bezier trajectory through space
     
     properties (Hidden)
@@ -44,10 +44,10 @@ classdef Trajectory
         %   HEIGHT = [1 x 1]
         %       The peak height during mid-swing of the cycle
         
-            obj = Trajectory();
-            obj.x = BezierTrajectory(duration, ...
+            obj = Trajectories.Trajectory();
+            obj.x = Trajectories.BezierTrajectory(duration, ...
                 prev_pos, next_pos, -prev_speed, -next_speed);
-            obj.y = BezierTrajectory(duration, ...
+            obj.y = Trajectories.BezierTrajectory(duration, ...
                 0, 0, 0, 0, height);
         end
         
@@ -67,10 +67,10 @@ classdef Trajectory
         %   PREV_POS, NEXT_POS = Pose
         %       The starting and ending poses of the body
         
-            obj = Trajectory();
-            obj.x = BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
+            obj = Trajectories.Trajectory();
+            obj.x = Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
                 prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
-            obj.y = BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+            obj.y = Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
                 prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
         end
     end
