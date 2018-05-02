@@ -1,4 +1,4 @@
-classdef Pose
+classdef Pose < handle
     %POSE a general location on the field
     
     properties
@@ -35,6 +35,16 @@ classdef Pose
             obj.z = z;
             obj.q = q;
             obj.v = v;
+        end
+        
+        function tf = eq(obj1, obj2)
+            tf = obj1.x == obj2.x && obj1.y == obj2.y && ...
+                 obj1.z == obj2.z && obj1.q == obj2.q && ...
+                 obj1.v == obj2.v;
+        end
+        
+        function tf = ne(obj1, obj2)
+            tf = ~obj1.eq(obj2);
         end
     end
     

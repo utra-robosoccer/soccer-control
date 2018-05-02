@@ -1,5 +1,5 @@
 classdef Trajectory < Trajectories.GeneralizedTrajectory
-    %TRAJECTORY Defines a 2D Bezier trajectory through space
+    %TRAJECTORY Defines a ND Bezier trajectory through space
     
     properties (Hidden)
         data
@@ -48,6 +48,7 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         %   HEIGHT = [1 x 1]
         %       The peak height during mid-swing of the cycle
         
+        % TODO Modify for three dimensional trajectories
             obj = Trajectories.Trajectory();
             obj.dim = 2;
             obj.data = Trajectories.BezierTrajectory.empty();
@@ -58,7 +59,7 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         end
         
         function obj = plannedPath(duration, prev_pose, next_pose)
-        %PLANNEDPATH Produces a forward an vertical trajectory for body
+        %PLANNEDPATH Produces a planar trajectory for body
         %   OBJ = PLANNEDPATH(DURATION, PREV_POS, NEXT_POS)
         %
         %   This produces the path that the body will follow based on an 
@@ -75,6 +76,7 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         
             obj = Trajectories.Trajectory();
             obj.dim = 2;
+            obj.duration = duration;
             obj.data = Trajectories.BezierTrajectory.empty();
             obj.data(1) = Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
                 prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));

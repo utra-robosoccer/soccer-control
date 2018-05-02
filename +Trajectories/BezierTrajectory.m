@@ -4,7 +4,6 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
     properties
         order = 0;
         parameters = [];
-        duration = 1.0;
         cur_time = 0.0;
         secant_size = 0.001;
     end

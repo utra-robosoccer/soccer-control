@@ -1,0 +1,76 @@
+function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot)
+%GENERATEFOOTSTEPS produces footsteps along a body path
+%   FOOTSTEPS = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
+%
+%   Produces a list of foot steps to travel along the body path
+%   provided, starting with the feet given
+%
+%
+%   Arguments
+%
+%   PATH = Trajectory
+%       The idealized path the the body should travel along
+%
+%   NEXT_FOOT, CUR_FOOT = FootStep
+%       The footstep corresponding to the next swing foot and the
+%       next stance foot, respectively.
+%
+%
+%   Outputs
+%
+%   FOOTSTEPS = [N x 1] Footstep
+%       The footsteps that the robot should follow
+
+%TODO: Cleanup and port to Footstep. Generate one at a time option?
+% should be based around trajectory at point, with offset
+
+    n_steps = path.data(1).duration/airtime;
+    footsteps = repmat(Footsteps.Footstep(), ceil(n_steps)+2, 1);
+    footsteps(1:2) = [cur_foot, next_foot];
+
+    for i = 1:ceil(n_steps)
+        x_m = path.data(1).positionAtTime((i+0.5)*airtime);
+        y_m = path.data(2).positionAtTime((i+0.5)*airtime);
+        x_m1 = path.data(1).positionAtTime((i+0.5)*airtime + path.data(1).secant_size);
+        y_m1 = path.data(2).positionAtTime((i+0.5)*airtime + path.data(2).secant_size);
+        x_m2 = path.data(1).positionAtTime((i+0.5)*airtime + 2*path.data(1).secant_size);
+        y_m2 = path.data(2).positionAtTime((i+0.5)*airtime + 2*path.data(2).secant_size);
+
+        delta_x = x_m1 - x_m;
+        delta_y = y_m1 - y_m;
+
+        %finding curvature
+        dydx = delta_y/delta_x;
+        dydx_inc = (y_m2 - y_m1)/(x_m2 - x_m1);
+        ddydxx = (dydx_inc - dydx)/(x_m1 - x_m);
+        curv = abs(ddydxx/(1+dydx^2)^(3/2));
+
+        %d is required distance from path the next foot must be
+        %a, b, and c can be changed, make d a function of curvature.
+        a = -0.04;                                     
+        b = 0.01;
+        c = 0;
+        d = a + b*curv + c*curv^2; 
+
+        %Find normal, and flip the direction depending on step side
+        normalv = [-delta_y, delta_x];
+        next_side = footsteps(i).side;
+        if next_side == Footsteps.Foot.Right
+            normalv = -normalv;
+        end
+
+        %Find position of next footstep based on normal and d
+        if next_side == Footsteps.Foot.Right
+            next_step = [x_m, y_m] - [0 d];
+        else
+            next_step = [x_m, y_m] + [0 d];
+        end
+        %Angle q of the nextfootstep
+        next_q = atan2(delta_y, delta_x);
+
+        footsteps(i+2) = Footsteps.Footstep(next_step(1), next_step(2), next_q, next_side, airtime);
+        if isnan(footsteps(i+2).x)
+            footsteps(i+2).x = 0;
+        end
+    end
+end
