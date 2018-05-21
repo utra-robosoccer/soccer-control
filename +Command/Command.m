@@ -8,6 +8,14 @@ classdef Command < handle
         % Body physical parameters
         hip_height = 0.16;
         hip_width = 0.04;
+        dh = [
+            0.0250     -pi/2         0      pi/2
+                 0      pi/2         0     -pi/2
+                 0         0    0.0890         0
+                 0         0    0.0825         0
+                 0         0         0      pi/2
+                 0         0    0.0370         0
+        ];
         
         % Movement timing parameters
         swing_time = 0.5;
@@ -31,21 +39,41 @@ classdef Command < handle
         foot_traj_r
         body_traj
         
-        dh = [
-            0.0250     -pi/2         0      pi/2
-                 0      pi/2         0     -pi/2
-                 0         0    0.0890         0
-                 0         0    0.0825         0
-                 0         0         0      pi/2
-                 0         0    0.0370         0
-        ];
-        
     end
     
     methods (Hidden)
         function traj = buildBodyTraj(obj, init_time, ...
                 init_step, fin_step, duration)
-            % Build body trajectory between footsteps
+        %BUILDBODYTRAJ builds body trajectory between footsteps
+        %   TRAJ = BUILDBODYTRAJ(OBJ, INIT_TIME, INIT_STEP, ...
+        %       FIN_STEP, DURATION)
+        %
+        %   BUILDBODYTRAJ constructs a smoothed trajectory for the body to
+        %   follow between footsteps. This is done with bezier curves,
+        %   allowing trajectory to precisely match foot tajectory when
+        %   needed.
+        %
+        %
+        %   Arguments
+        %
+        %   INIT_TIME = [1 x 1] 
+        %       How far into the future from the current time to construct
+        %       the body trajectory.
+        %
+        %   INIT_STEP = [1 x 1] Pose
+        %       The initial position of the body.
+        %
+        %   FIN_STEP = [1 x 1] Pose
+        %       The final position of the body.
+        %
+        %   DURATION = [1 x 1]
+        %       How long the trajectory should take.
+        %
+        %
+        %   Outputs
+        %
+        %   TRAJ = [1 x 1] Trajectories.Trajectory(dim=2)
+        %       The two-dimensional body trajectory.
             init_pos = [init_step.x init_step.y] - ...
                 obj.actions.positionAtTime(init_time);
             fin_pos = [fin_step.x fin_step.y] - ...
@@ -66,6 +94,14 @@ classdef Command < handle
     
     methods
         function obj = Command(start_pose)
+        %COMMAND initializes the command object
+        %   OBJ = COMMAND(START_POS)
+        %
+        %   
+        %   Arguments
+        %
+        %   START_POS = [1 x 1] Pose
+        %       Where the robot starts.
             obj.body_pose = start_pose;
             
             % Initialize queues
@@ -90,8 +126,23 @@ classdef Command < handle
         end
         
         function angles = next(obj)
+        %NEXT produces the next set of joint angles
+        %   ANGLES = NEXT(OBJ)
+        %
+        %   This is the main method for the COMMAND object. This method
+        %   advances time forward and keeps track of all important changes
+        %   that result from this. It then determines the current angles
+        %   based on this.
+        %
+        %
+        %   Outputs
+        %
+        %   Angles = [2 x 6]
+        %       The 12 angles corresponding to the current desired angular
+        %       position.
             obj.actions.next();
             footstep = obj.footsteps.next();
+            %TODO Figure out how to remove if statement to reduce repistion
             if footstep.side == Footsteps.Foot.Left && ...
                     footstep ~= obj.foot_pos(1)
                 % Build new trajectories for feet to reach next footstep
@@ -147,6 +198,23 @@ classdef Command < handle
         end
         
         function append(obj, label, goal, duration)
+        %APPEND adds a new action to the action queue
+        %   APPEND(OBJ, LABEL, GOAL, DURATION)
+        %
+        %   Construct a new action based on the provided inputs and appends
+        %   it to the queue. Also update other parameters as needed.
+        %
+        %
+        %   Arguments
+        %
+        %   LABEL = [1 x 1] Command.ActionLabel
+        %       The desired type of action.
+        %
+        %   GOAL = [1 x 1] Pose
+        %       The desired final position
+        %
+        %   DURATION = [1 x 1]
+        %       The desired duration of the action.
             if ~isempty(obj.actions)
                 action = Command.Action( ...
                     label, obj.actions.data(obj.actions.end).goal, ...
@@ -164,12 +232,13 @@ classdef Command < handle
                 new_footsteps = Footsteps.generateFootsteps(...
                     action.path, obj.cycle_time/2, ...
                     obj.footsteps(obj.footsteps.end), ...
-                    obj.footsteps(obj.footsteps.end-1)...
+                    obj.footsteps(obj.footsteps.end-1), ...
+                    obj.hip_width ...
                 );
             else
                 new_footsteps = Footsteps.generateFootsteps(...
                     action.path, obj.cycle_time/2, ...
-                    obj.foot_pos(1), obj.foot_pos(2)...
+                    obj.foot_pos(1), obj.foot_pos(2), obj.hip_width ...
                 );
             end
             for footstep = reshape(new_footsteps(3:end), 1, [])

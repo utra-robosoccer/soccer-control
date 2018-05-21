@@ -109,8 +109,8 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
         end
         
         function v = speedAtTime(obj, t)            
-        %POSITIONATTIME returns the speed at time t
-        %   X = POSITIONATTIME(OBJ, T)
+        %SPEEDATTIME returns the speed at time t
+        %   V = SPEEDATTIME(OBJ, T)
         %
         %   Gives the speed at the specified time. Can be vectorized, 
         %   producing a list of speeds correspoinding to the array of t.

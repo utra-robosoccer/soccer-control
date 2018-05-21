@@ -1,4 +1,4 @@
-function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot)
+function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot, step_width)
 %GENERATEFOOTSTEPS produces footsteps along a body path
 %   FOOTSTEPS = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
 %
@@ -47,24 +47,24 @@ function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot)
 
         %d is required distance from path the next foot must be
         %a, b, and c can be changed, make d a function of curvature.
-        a = -0.04;                                     
-        b = 0.01;
+        a = -step_width;                                     
+        b = 0.0;
         c = 0;
         d = a + b*curv + c*curv^2; 
 
         %Find normal, and flip the direction depending on step side
-        normalv = [-delta_y, delta_x];
+        if delta_x > 0
+            normalv = [-delta_y, delta_x];
+        else
+            normalv = [delta_y, -delta_x];
+        end
         next_side = footsteps(i).side;
         if next_side == Footsteps.Foot.Right
             normalv = -normalv;
         end
 
         %Find position of next footstep based on normal and d
-        if next_side == Footsteps.Foot.Right
-            next_step = [x_m, y_m] - [0 d];
-        else
-            next_step = [x_m, y_m] + [0 d];
-        end
+        next_step = [x_m y_m] + normalv/norm(normalv) * d;
         %Angle q of the nextfootstep
         next_q = atan2(delta_y, delta_x);
 

@@ -1,6 +1,6 @@
 classdef FootCycle < Trajectories.GeneralizedTrajectory
-    %FOOTCYCLE A full cycle (stance - swing) for one foot
-    % TODO Replace all usage with direct LiveQueue <- identical use
+    %FOOTCYCLE A full cycle (swing - stance) for one foot
+    % TODO Replace all usage with direct LiveQueue <- almost identical use
     
     properties (Hidden)
         stance = Trajectories.Trajectory.empty();
@@ -35,6 +35,8 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
         
             obj.trans_time = trans_time;
             obj.duration = duration;
+            
+            % Determine initial, transition, and final speeds
             init_pos    = [last_step.x last_step.y] - body_traj.positionAtTime(0);
             trans_pos   = [next_step.x next_step.y] - body_traj.positionAtTime(trans_time);
             fin_pos     = [next_step.x next_step.y] - body_traj.positionAtTime(duration);
@@ -42,13 +44,12 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
             trans_speed = body_traj.speedAtTime(trans_time);
             fin_speed   = body_traj.speedAtTime(duration);
             
-            %TODO Modify for three dimensional trajectories
-            % If there exists a swing phase
+            % If there exists a swing phase, construct swing trajectory
             if trans_time > 0
                 obj.swing = Trajectories.Trajectory.footTrajectory(trans_time, ...
                     init_pos(1), trans_pos(1), init_speed(1), trans_speed(1), step_height);
             end
-            % If there exists a stance phase
+            % If there exists a stance phase, construct stance trajectory
             if duration > trans_time
                 obj.stance = Trajectories.Trajectory.footTrajectory(duration - trans_time, ...
                     trans_pos(1), fin_pos(1), trans_speed(1), fin_speed(1), 0);
@@ -56,7 +57,20 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
         end
         
         function pos = positionAtTime(obj, t)
-        %POSITIONATTIME see BezierTrajectory.positionAtTime
+        %POSITIONATTIME returns the position at the given time
+        %   X = POSITIONATTIME(OBJ, T)   
+        %
+        %
+        %   Arguments
+        %
+        %   T = [1 x 1]
+        %       The time to retrieve the positon at
+        %
+        %
+        %   Outputs
+        %
+        %   X = [1 x 1]
+        %       The position at time t
             if t < obj.trans_time
                 pos = obj.swing.positionAtTime(t);
             else
@@ -64,8 +78,21 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
             end
         end
         
-        function speed = speedAtTime(obj, t)
-        %SPEEDATTIME see BezierTrajectory.speedAtTime
+        function speed = speedAtTime(obj, t)            
+        %SPEEDATTIME returns the speed at the given team
+        %   V = SPEEDATTIME(OBJ, T)
+        %
+        %
+        %   Arguments
+        %
+        %   T = [1 x 1]
+        %       The time to retrieve the speed at
+        %
+        %
+        %   Outputs
+        %
+        %   V = [1 x 1]
+        %       The speed at time t
             if t < obj.trans_time
                 speed = obj.swing.speedTime(t);
             else

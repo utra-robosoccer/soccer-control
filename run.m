@@ -11,7 +11,7 @@ body_height = 0.099 + 0.16;
 
 %% Generate Angles
 start_pose = Pose(0, 0, 0, 0, 0);
-end_pose = Pose(-0.5, 0, 0, 0, 0);
+end_pose = Pose(0.5, 0, 0, 0, 0.0);
 command = Command.Command(start_pose);
 q0_left = command.cur_angles(1,:);
 q0_right = command.cur_angles(2,:);
