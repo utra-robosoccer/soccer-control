@@ -3,8 +3,8 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
     % TODO Replace all usage with direct LiveQueue <- almost identical use
     
     properties (Hidden)
-        stance = Trajectories.Trajectory.empty();
-        swing = Trajectories.Trajectory.empty();
+        stance
+        swing
         trans_time;
     end
     
@@ -45,15 +45,11 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
             fin_speed   = body_traj.speedAtTime(duration);
             
             % If there exists a swing phase, construct swing trajectory
-            if trans_time > 0
-                obj.swing = Trajectories.Trajectory.footTrajectory(trans_time, ...
-                    init_pos(1), trans_pos(1), init_speed(1), trans_speed(1), step_height);
-            end
+            obj.swing = Trajectories.Trajectory.footTrajectory(trans_time, ...
+                init_pos(1), trans_pos(1), init_speed(1), trans_speed(1), step_height);
             % If there exists a stance phase, construct stance trajectory
-            if duration > trans_time
-                obj.stance = Trajectories.Trajectory.footTrajectory(duration - trans_time, ...
-                    trans_pos(1), fin_pos(1), trans_speed(1), fin_speed(1), 0);
-            end
+            obj.stance = Trajectories.Trajectory.footTrajectory(duration - trans_time, ...
+                trans_pos(1), fin_pos(1), trans_speed(1), fin_speed(1), 0);
         end
         
         function pos = positionAtTime(obj, t)

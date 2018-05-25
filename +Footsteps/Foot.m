@@ -1,9 +1,9 @@
-classdef Foot
+classdef Foot < uint8
     %FOOT enumerates foot sides
     
     enumeration
-        Left
-        Right
+        Left (0)
+        Right (1)
     end
     
     methods

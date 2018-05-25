@@ -1,6 +1,6 @@
-function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot, step_width)
+function [footsteps, n_steps] = generateFootsteps(path, airtime, next_foot, cur_foot, step_width)
 %GENERATEFOOTSTEPS produces footsteps along a body path
-%   FOOTSTEPS = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
+%   [FOOTSTEPS, N_STEPS] = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
 %
 %   Produces a list of foot steps to travel along the body path
 %   provided, starting with the feet given
@@ -20,21 +20,29 @@ function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot, step_
 %
 %   FOOTSTEPS = [N x 1] Footstep
 %       The footsteps that the robot should follow
+%
+%   N_STEPS = [1 x 1]
+%       Number of calculated steps
 
-%TODO: Cleanup and port to Footstep. Generate one at a time option?
+%TODO: Major Cleanup and port to Footstep. Generate one at a time option?
 % should be based around trajectory at point, with offset
 
-    n_steps = path.data(1).duration/airtime;
-    footsteps = repmat(Footsteps.Footstep(), ceil(n_steps)+2, 1);
-    footsteps(1:2) = [cur_foot, next_foot];
+    n_steps = ceil(path.data{1}.duration/airtime);
+    footsteps = {
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+    };
+    footsteps{1} = cur_foot; footsteps{2} = next_foot;
 
-    for i = 1:ceil(n_steps)
-        x_m = path.data(1).positionAtTime((i+0.5)*airtime);
-        y_m = path.data(2).positionAtTime((i+0.5)*airtime);
-        x_m1 = path.data(1).positionAtTime((i+0.5)*airtime + path.data(1).secant_size);
-        y_m1 = path.data(2).positionAtTime((i+0.5)*airtime + path.data(2).secant_size);
-        x_m2 = path.data(1).positionAtTime((i+0.5)*airtime + 2*path.data(1).secant_size);
-        y_m2 = path.data(2).positionAtTime((i+0.5)*airtime + 2*path.data(2).secant_size);
+    for i = 1:n_steps
+        x_m = path.data{1}.positionAtTime((i+0.5)*airtime);
+        y_m = path.data{2}.positionAtTime((i+0.5)*airtime);
+        x_m1 = path.data{1}.positionAtTime((i+0.5)*airtime + path.data{1}.secant_size);
+        y_m1 = path.data{2}.positionAtTime((i+0.5)*airtime + path.data{2}.secant_size);
+        x_m2 = path.data{1}.positionAtTime((i+0.5)*airtime + 2*path.data{1}.secant_size);
+        y_m2 = path.data{2}.positionAtTime((i+0.5)*airtime + 2*path.data{2}.secant_size);
 
         delta_x = x_m1 - x_m;
         delta_y = y_m1 - y_m;
@@ -58,7 +66,7 @@ function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot, step_
         else
             normalv = [delta_y, -delta_x];
         end
-        next_side = footsteps(i).side;
+        next_side = footsteps{i}.side;
         if next_side == Footsteps.Foot.Right
             normalv = -normalv;
         end
@@ -68,9 +76,13 @@ function footsteps = generateFootsteps(path, airtime, next_foot, cur_foot, step_
         %Angle q of the nextfootstep
         next_q = atan2(delta_y, delta_x);
 
-        footsteps(i+2) = Footsteps.Footstep(next_step(1), next_step(2), next_q, next_side, airtime);
-        if isnan(footsteps(i+2).x)
-            footsteps(i+2).x = 0;
+        footsteps{i+2}.x = next_step(1);
+        footsteps{i+2}.y = next_step(2);
+        footsteps{i+2}.q = next_q;
+        footsteps{i+2}.side = next_side;
+        footsteps{i+2}.duration = airtime;
+        if isnan(footsteps{i+2}.x)
+            footsteps{i+2}.x = 0;
         end
     end
 end

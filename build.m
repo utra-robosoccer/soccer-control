@@ -1,0 +1,1 @@
+codegen run -config:lib

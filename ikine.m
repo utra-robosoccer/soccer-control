@@ -59,8 +59,7 @@ function q = ikine(dh, x6, y6, z6, g, q0)
     
     % is this position possible
     if (dab < l1 - l2 || dab > l1 + l2)
-        q = [];
-        return
+        error('Goal position is unreachable');
     end
     
     % use cosine  law to solve angles of triangle

@@ -6,6 +6,8 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
         parameters = [];
         cur_time = 0.0;
         secant_size = 0.001;
+        end_pos = 0;
+        end_vel = 0;
     end
     
     methods
@@ -34,37 +36,28 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
         %       The peak height during mid-swing of the cycle
         
             if nargin > 0
-                % A single BezierTrajectory
-                if isscalar(varargin{1})
-                    obj.order = length(varargin) - 1;
-                    obj.duration = duration;
-                    if obj.order == 3
-                        obj.parameters = [varargin{1}, ...
-                            3*varargin{1} + varargin{3}*duration, ...
-                            3*varargin{2} - varargin{4}*duration, ...
-                            varargin{2}];
-                    elseif obj.order == 4
-                        obj.parameters = [varargin{1}, ...
-                            4*varargin{1} + varargin{3}*duration, ...
-                            0 , ...
-                            4*varargin{2} - varargin{4}*duration, ...
-                            varargin{2}];
-                        obj.parameters(3) = (16*varargin{5} - ...
-                            obj.parameters(1) - obj.parameters(2) - ...
-                            obj.parameters(4) - obj.parameters(5));
-                    else
-                        error(['Undefined Bezier Order: Please check input ' ...
-                            'arguments or add a new definition'])
-                    end
-                % An array of BezierTrajectory
+                obj.order = length(varargin) - 1;
+                obj.duration = duration;
+                obj.end_pos = varargin{2};
+                if nargin == 5 % Order 3
+                    obj.parameters = [varargin{1}, ...
+                        3*varargin{1} + varargin{3}*duration, ...
+                        3*varargin{2} - varargin{4}*duration, ...
+                        varargin{2}];
+                elseif nargin == 6 % Order 4
+                    obj.parameters = [varargin{1}, ...
+                        4*varargin{1} + varargin{3}*duration, ...
+                        0 , ...
+                        4*varargin{2} - varargin{4}*duration, ...
+                        varargin{2}];
+                    obj.parameters(3) = (16*varargin{5} - ...
+                        obj.parameters(1) - obj.parameters(2) - ...
+                        obj.parameters(4) - obj.parameters(5));
                 else
-                    for i = length(duration):-1:1
-                        % Extract the ith argument and use it to construct
-                        % a single Bezier
-                        args_i = num2cell(cellfun(@(x) x(i), varargin));
-                        obj(i) = BezierTrajectory(duration(i), args_i{:});
-                    end
+                    error(['Undefined Bezier Order: Please check input ' ...
+                        'arguments or add a new definition'])
                 end
+                obj.end_vel = obj.speedAtTime(obj.duration);
             end
         end
         
@@ -87,18 +80,12 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
             %   X = [1 x 1]
             %       The position at time t
             
-            if isempty(t)
-                x = 0;
-                return
-            elseif min(t) < 0
-                error('Invalid time supplied');
-            elseif length(t) == 1 && t > obj.duration
+            x = 0;
+            if t >= obj.duration
                 % Linear extrapolation of the position
-                x = obj.positionAtTime(obj.duration) + ...
-                    obj.speedAtTime(obj.duration) * (t - obj.duration);
+                x = obj.end_pos + obj.end_vel * (t - obj.duration);
                 return
             end
-            x = 0;
             
             % Evaluate the Bezier function per parameter
             for i = 0:obj.order
@@ -128,7 +115,10 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
         %
         %   V = [1 x 1]
         %       The speed at time t
-        
+            if t > obj.duration
+                v = obj.end_vel;
+                return
+            end
             tp = min(t + obj.secant_size, obj.duration);
             tm = max(t - obj.secant_size, 0);
             v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);

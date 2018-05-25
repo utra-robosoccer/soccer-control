@@ -10,16 +10,14 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         function pos = positionAtTime(obj, t)
         %POSITIONATTIME produces the positions at time t
             pos = zeros(1, obj.dim);
-            for i = 1:obj.dim
-                pos(i) = obj.data(i).positionAtTime(t);
-            end
+            pos(1) = obj.data{1}.positionAtTime(t);
+            pos(2) = obj.data{2}.positionAtTime(t);
         end
         function speed = speedAtTime(obj, t)
-        %POSITIONATTIME produces the speeds at time t
+        %SPEEDATTIME produces the speeds at time t
             speed = zeros(1, obj.dim);
-            for i = 1:obj.dim
-                speed(i) = obj.data(i).speedAtTime(t);
-            end
+            speed(1) = obj.data{1}.speedAtTime(t);
+            speed(2) = obj.data{2}.speedAtTime(t);
         end
     end
     
@@ -51,11 +49,12 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         % TODO Modify for three dimensional trajectories
             obj = Trajectories.Trajectory();
             obj.dim = 2;
-            obj.data = Trajectories.BezierTrajectory.empty();
-            obj.data(1) = Trajectories.BezierTrajectory(duration, ...
-                prev_pos, next_pos, -prev_speed, -next_speed);
-            obj.data(2) = Trajectories.BezierTrajectory(duration, ...
-                0, 0, 0, 0, height);
+            obj.data = {
+                Trajectories.BezierTrajectory(duration, ...
+                    prev_pos, next_pos, -prev_speed, -next_speed);
+                Trajectories.BezierTrajectory(duration, ...
+                    0, 0, 0, 0, height)
+            };
         end
         
         function obj = plannedPath(duration, prev_pose, next_pose)
@@ -77,11 +76,12 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
             obj = Trajectories.Trajectory();
             obj.dim = 2;
             obj.duration = duration;
-            obj.data = Trajectories.BezierTrajectory.empty();
-            obj.data(1) = Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
-                prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
-            obj.data(2) = Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
-                prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
+            obj.data = {
+                Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
+                    prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
+                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q))
+            };
         end
     end
     
