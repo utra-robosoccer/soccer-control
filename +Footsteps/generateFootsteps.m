@@ -1,5 +1,6 @@
-function [footsteps, n_steps] = generateFootsteps(path, airtime, next_foot, cur_foot, step_width)
-%GENERATEFOOTSTEPS produces footsteps along a body path
+function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_foot, cur_foot, step_width)
+%GENERATEFOOTSTEPS produces footsteps along a body path, Following very out
+%of date
 %   [FOOTSTEPS, N_STEPS] = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
 %
 %   Produces a list of foot steps to travel along the body path
@@ -27,7 +28,7 @@ function [footsteps, n_steps] = generateFootsteps(path, airtime, next_foot, cur_
 %TODO: Major Cleanup and port to Footstep. Generate one at a time option?
 % should be based around trajectory at point, with offset
 
-    n_steps = ceil(path.data{1}.duration/airtime);
+    n_steps = ceil(action.path.data{1}.duration/step_duration);
     footsteps = {
         Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
         Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
@@ -37,42 +38,24 @@ function [footsteps, n_steps] = generateFootsteps(path, airtime, next_foot, cur_
     footsteps{1} = cur_foot; footsteps{2} = next_foot;
 
     for i = 1:n_steps
-        x_m = path.data{1}.positionAtTime((i+0.5)*airtime);
-        y_m = path.data{2}.positionAtTime((i+0.5)*airtime);
-        x_m1 = path.data{1}.positionAtTime((i+0.5)*airtime + path.data{1}.secant_size);
-        y_m1 = path.data{2}.positionAtTime((i+0.5)*airtime + path.data{2}.secant_size);
-        x_m2 = path.data{1}.positionAtTime((i+0.5)*airtime + 2*path.data{1}.secant_size);
-        y_m2 = path.data{2}.positionAtTime((i+0.5)*airtime + 2*path.data{2}.secant_size);
+        x_m = action.path.data{1}.positionAtTime((i+0.5)*step_duration);
+        y_m = action.path.data{2}.positionAtTime((i+0.5)*step_duration);
+        x_m1 = action.path.data{1}.positionAtTime((i+0.5)*step_duration + action.path.data{1}.secant_size);
+        y_m1 = action.path.data{2}.positionAtTime((i+0.5)*step_duration + action.path.data{2}.secant_size);
 
         delta_x = x_m1 - x_m;
         delta_y = y_m1 - y_m;
 
-        %finding curvature
-        dydx = delta_y/delta_x;
-        dydx_inc = (y_m2 - y_m1)/(x_m2 - x_m1);
-        ddydxx = (dydx_inc - dydx)/(x_m1 - x_m);
-        curv = abs(ddydxx/(1+dydx^2)^(3/2));
-
-        %d is required distance from path the next foot must be
-        %a, b, and c can be changed, make d a function of curvature.
-        a = -step_width;                                     
-        b = 0.0;
-        c = 0;
-        d = a + b*curv + c*curv^2; 
-
         %Find normal, and flip the direction depending on step side
-        if delta_x > 0
-            normalv = [-delta_y, delta_x];
-        else
-            normalv = [delta_y, -delta_x];
-        end
+        normalv = [-delta_y, delta_x];
         next_side = footsteps{i}.side;
-        if next_side == Footsteps.Foot.Right
+        if xor(next_side == Footsteps.Foot.Right, ...
+                action.label == Command.ActionLabel.Backward)
             normalv = -normalv;
         end
 
         %Find position of next footstep based on normal and d
-        next_step = [x_m y_m] + normalv/norm(normalv) * d;
+        next_step = [x_m y_m] - normalv/norm(normalv) * step_width;
         %Angle q of the nextfootstep
         next_q = atan2(delta_y, delta_x);
 
@@ -80,7 +63,7 @@ function [footsteps, n_steps] = generateFootsteps(path, airtime, next_foot, cur_
         footsteps{i+2}.y = next_step(2);
         footsteps{i+2}.q = next_q;
         footsteps{i+2}.side = next_side;
-        footsteps{i+2}.duration = airtime;
+        footsteps{i+2}.duration = step_duration;
         if isnan(footsteps{i+2}.x)
             footsteps{i+2}.x = 0;
         end
