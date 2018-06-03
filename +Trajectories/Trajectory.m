@@ -49,6 +49,7 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         % TODO Modify for three dimensional trajectories
             obj = Trajectories.Trajectory();
             obj.dim = 2;
+            obj.duration = duration;
             obj.data = {
                 Trajectories.BezierTrajectory(duration, ...
                     prev_pos, next_pos, -prev_speed, -next_speed);
