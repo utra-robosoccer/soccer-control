@@ -73,20 +73,23 @@ classdef Command < handle
         %
         %   TRAJ = [1 x 1] Trajectories.Trajectory(dim=2)
         %       The two-dimensional body trajectory.
-            init_pos = [init_step.x init_step.y] - ...
-                obj.actions.positionAtTime(init_time);
-            fin_pos = [fin_step.x fin_step.y] - ...
-                obj.actions.positionAtTime(init_time + duration);
+            init_pos = init_step - obj.actions.positionAtTime(init_time);
+            fin_pos = fin_step - obj.actions.positionAtTime(init_time + duration);
             init_speed = -obj.actions.speedAtTime(init_time);
             fin_speed = -obj.actions.speedAtTime(init_time + duration);
             traj = Trajectories.Trajectory();
-            traj.dim = 2;
             % TODO Generalize speed to 3d
             traj.data = {
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos(1), fin_pos(1), init_speed(1), fin_speed(1));
+                    init_pos.x, fin_pos.x, init_speed.x, fin_speed.x);
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos(2), fin_pos(2), init_speed(2), init_speed(2))
+                    init_pos.y, fin_pos.y, init_speed.y, init_speed.y);
+                Trajectories.BezierTrajectory(duration, ...
+                    init_pos.z, fin_pos.z, init_speed.z, init_speed.z);
+                Trajectories.BezierTrajectory(duration, ...
+                    init_pos.q, fin_pos.q, init_speed.q, init_speed.q);
+                Trajectories.BezierTrajectory(duration, ...
+                    init_pos.v, fin_pos.v, init_speed.v, init_speed.v)
             };
             traj.duration = duration;
         end
@@ -191,14 +194,13 @@ classdef Command < handle
             ftl = obj.foot_traj_l.next();
             ftr = obj.foot_traj_r.next();
             bp = obj.body_traj.next();
-            obj.cur_angles(1,:) = ikine(obj.dh, ftl(1) - bp(1), -bp(2), ...
-                ftl(2) - obj.hip_height, 0, obj.cur_angles(1,:) ...
+            obj.cur_angles(1,:) = ikine(obj.dh, ftl.x - bp.x, -bp.y, ...
+                ftl.z - obj.hip_height, 0, obj.cur_angles(1,:) ...
             );
-            obj.cur_angles(2,:) = ikine(obj.dh, ftr(1) - bp(1), -bp(2), ...
-                ftr(2) - obj.hip_height, 0, obj.cur_angles(2,:) ...
+            obj.cur_angles(2,:) = ikine(obj.dh, ftr.x - bp.x, -bp.y, ...
+                ftr.z - obj.hip_height, 0, obj.cur_angles(2,:) ...
             );
             angles = obj.cur_angles;
-%             angles = [ftl, ftr, bp];
         end
         
         function append(obj, label, goal, duration)

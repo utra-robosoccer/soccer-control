@@ -149,7 +149,11 @@ classdef LiveQueue < Trajectories.GeneralizedTrajectory
                 error('Speed not enabled for this data');
             end
             if isempty(obj) || time >= obj.duration - obj.current_time
-                speed = zeros(size(obj.last_hold));
+                if obj.last_hold.isobject
+                    speed = Pose(0,0,0,0,0);
+                else
+                    speed = zeros(size(obj.last_hold));
+                end
                 return
             end
             idx = 1;

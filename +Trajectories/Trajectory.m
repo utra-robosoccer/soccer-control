@@ -3,21 +3,24 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
     
     properties (Hidden)
         data
-        dim = 0;
     end
     
     methods
         function pos = positionAtTime(obj, t)
         %POSITIONATTIME produces the positions at time t
-            pos = zeros(1, obj.dim);
-            pos(1) = obj.data{1}.positionAtTime(t);
-            pos(2) = obj.data{2}.positionAtTime(t);
+            p = zeros(1, 5);
+            for i = 1:5
+                p(i) = obj.data{i}.positionAtTime(t);
+            end
+            pos = Pose(p(1), p(2), p(3), p(4), p(5));
         end
         function speed = speedAtTime(obj, t)
         %SPEEDATTIME produces the speeds at time t
-            speed = zeros(1, obj.dim);
-            speed(1) = obj.data{1}.speedAtTime(t);
-            speed(2) = obj.data{2}.speedAtTime(t);
+            s = zeros(1, 5);
+            for i = 1:5
+                s(i) = obj.data{i}.speedAtTime(t);
+            end
+            speed = Pose(s(1), s(2), s(3), s(4), s(5));
         end
     end
     
@@ -48,13 +51,18 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         
         % TODO Modify for three dimensional trajectories
             obj = Trajectories.Trajectory();
-            obj.dim = 2;
             obj.duration = duration;
             obj.data = {
                 Trajectories.BezierTrajectory(duration, ...
-                    prev_pos, next_pos, -prev_speed, -next_speed);
+                    prev_pos.x, next_pos.x, -prev_speed.x, -next_speed.x);
                 Trajectories.BezierTrajectory(duration, ...
-                    0, 0, 0, 0, height)
+                    prev_pos.y, next_pos.y, -prev_speed.y, -next_speed.y);
+                Trajectories.BezierTrajectory(duration, ...
+                    0, 0, 0, 0, height);
+                Trajectories.BezierTrajectory(duration, ...
+                    prev_pos.q, next_pos.q, -prev_speed.q, -next_speed.q);
+                Trajectories.BezierTrajectory(duration, ...
+                    prev_pos.v, next_pos.v, -prev_speed.v, -next_speed.v)
             };
         end
         
@@ -75,11 +83,16 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         %       The starting and ending poses of the body
         
             obj = Trajectories.Trajectory();
-            obj.dim = 2;
             obj.duration = duration;
             obj.data = {
                 Trajectories.BezierTrajectory(duration, prev_pose.x, next_pose.x, ...
                     prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
+                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
+                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
+                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
+                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
                 Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
                     prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q))
             };

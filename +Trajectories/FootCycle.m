@@ -37,19 +37,19 @@ classdef FootCycle < Trajectories.GeneralizedTrajectory
             obj.duration = duration;
             
             % Determine initial, transition, and final speeds
-            init_pos    = [last_step.x last_step.y] - body_traj.positionAtTime(0);
-            trans_pos   = [next_step.x next_step.y] - body_traj.positionAtTime(trans_time);
-            fin_pos     = [next_step.x next_step.y] - body_traj.positionAtTime(duration);
+            init_pos    = last_step - body_traj.positionAtTime(0);
+            trans_pos   = next_step - body_traj.positionAtTime(trans_time);
+            fin_pos     = next_step - body_traj.positionAtTime(duration);
             init_speed  = body_traj.speedAtTime(0);
             trans_speed = body_traj.speedAtTime(trans_time);
             fin_speed   = body_traj.speedAtTime(duration);
             
             % If there exists a swing phase, construct swing trajectory
             obj.swing = Trajectories.Trajectory.footTrajectory(trans_time, ...
-                init_pos(1), trans_pos(1), init_speed(1), trans_speed(1), step_height);
+                init_pos, trans_pos, init_speed, trans_speed, step_height);
             % If there exists a stance phase, construct stance trajectory
             obj.stance = Trajectories.Trajectory.footTrajectory(duration - trans_time, ...
-                trans_pos(1), fin_pos(1), trans_speed(1), fin_speed(1), 0);
+                trans_pos, fin_pos, trans_speed, fin_speed, 0);
         end
         
         function pos = positionAtTime(obj, t)

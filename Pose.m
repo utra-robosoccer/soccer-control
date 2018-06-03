@@ -46,6 +46,33 @@ classdef Pose < handle
         function tf = ne(obj1, obj2)
             tf = ~obj1.eq(obj2);
         end
+        
+        function d = get(obj)
+            d = [obj.x obj.y obj.z obj.q obj.v];
+        end
+        
+        function r = uplus(obj)
+            r = obj;
+        end
+        
+        function r = uminus(obj)
+            d = -obj.get();
+            r = Pose(d(1), d(2), d(3), d(4), d(5));
+        end
+        
+        function r = plus(obj1, obj2)
+            d = obj1.get() + obj2.get();
+            r = Pose(d(1), d(2), d(3), d(4), d(5));
+        end
+        
+        function r = minus(obj1, obj2)
+            r = obj1 + -obj2;
+        end
+        
+        
+        function t = isobject(obj)
+            t = true;
+        end
     end
     
 end
