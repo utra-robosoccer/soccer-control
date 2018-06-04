@@ -157,7 +157,8 @@ classdef LiveQueue < Trajectories.GeneralizedTrajectory
                 return
             end
             idx = 1;
-            while time > obj.transitions(idx) && idx <= obj.end_idx
+            while time > obj.transitions(idx) - obj.current_time && ...
+                    idx <= obj.end_idx
                 time = time - obj.transitions(idx);
                 idx = idx + 1;
             end

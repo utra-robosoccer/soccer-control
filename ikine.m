@@ -1,5 +1,5 @@
 function q = ikine(dh, x6, y6, z6, g, q0)
-%IKINE returns joint angles to produces ee position
+%IKINE returns joint angles to produces ee position %%% OUT OF DATE
 %   Q = IKINE(DH, X6, Z6, G, Q0)
 % 
 %   Uses an analytical inverse kinematics to produce the joint angles
@@ -42,14 +42,14 @@ function q = ikine(dh, x6, y6, z6, g, q0)
     q = zeros(6, 1);
     
     % Hip angle to ensure angle of foot
-    q(1) = g;
+    q(1) = -g;
     
     % Position of right before the end (ankle)
     z5 = z6 + l3;
     
     % Shift foot so that it is inline with desired position
     d = r * sin(g - t);
-    q(2) = -atan2(d, -z5);
+    q(2) = atan2(d, -z5);
     q(6) = -q(2);
     
     % Distance to ankle

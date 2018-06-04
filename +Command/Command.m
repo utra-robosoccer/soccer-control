@@ -7,7 +7,7 @@ classdef Command < handle
         
         % Body physical parameters
         hip_height = 0.16;
-        hip_width = 0.04;
+        hip_width = 0.042;
         dh = [
             0.0250     -pi/2         0      pi/2
                  0      pi/2         0     -pi/2
@@ -36,7 +36,7 @@ classdef Command < handle
         % Trajectories
         foot_traj_l
         foot_traj_r
-        body_traj
+        body_traj 
     end
     
     methods (Hidden)
@@ -77,19 +77,29 @@ classdef Command < handle
             fin_pos = fin_step - obj.actions.positionAtTime(init_time + duration);
             init_speed = -obj.actions.speedAtTime(init_time);
             fin_speed = -obj.actions.speedAtTime(init_time + duration);
+            
+            %Ensure continuous rotations
+            iq = mod(init_pos.q, 2*pi); fq = mod(fin_pos.q, 2*pi);
+            if abs(fq - iq) > pi
+                if abs(fq) > abs(iq)
+                    fq = fq - 2 * pi;
+                else
+                    iq = iq - 2 * pi;
+                end
+            end
+            
             traj = Trajectories.Trajectory();
-            % TODO Generalize speed to 3d
             traj.data = {
                 Trajectories.BezierTrajectory(duration, ...
                     init_pos.x, fin_pos.x, init_speed.x, fin_speed.x);
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos.y, fin_pos.y, init_speed.y, init_speed.y);
+                    init_pos.y, fin_pos.y, init_speed.y, fin_speed.y);
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos.z, fin_pos.z, init_speed.z, init_speed.z);
+                    init_pos.z, fin_pos.z, init_speed.z, fin_speed.z);
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos.q, fin_pos.q, init_speed.q, init_speed.q);
+                    iq, fq, init_speed.q, fin_speed.q);
                 Trajectories.BezierTrajectory(duration, ...
-                    init_pos.v, fin_pos.v, init_speed.v, init_speed.v)
+                    init_pos.v, fin_pos.v, init_speed.v, fin_speed.v)
             };
             traj.duration = duration;
         end
@@ -108,8 +118,14 @@ classdef Command < handle
             obj.body_pose = start_pose;
             
             % Initial Foot Positions
-            obj.foot_pos = {Footsteps.Footstep(0, -0.04, 0, Footsteps.Foot.Left, 0),... 
-            Footsteps.Footstep(0, 0.04, 0, Footsteps.Foot.Right, 0)}; % L, R
+            obj.foot_pos = {
+                Footsteps.Footstep(-obj.hip_width * sin(start_pose.q), ...
+                                    obj.hip_width * cos(start_pose.q), ...
+                                    start_pose.q, Footsteps.Foot.Left, 0),... 
+                Footsteps.Footstep( obj.hip_width * sin(start_pose.q), ...
+                                   -obj.hip_width * cos(start_pose.q), ...
+                                    start_pose.q, Footsteps.Foot.Right, 0)
+            }; % L, R
             
             % Initialize queues
             obj.actions = Trajectories.LiveQueue(Command.Action(...
@@ -126,10 +142,14 @@ classdef Command < handle
             %TODO should not depend on footstep position
             obj.cur_angles(1,3) = 1;
             obj.cur_angles(2,3) = 1;
-            obj.cur_angles(1,:) = ikine(obj.dh, obj.foot_pos{1}.x, ...
-                obj.foot_pos{1}.y, -obj.hip_height, 0, obj.cur_angles(1,:));
-            obj.cur_angles(2,:) = ikine(obj.dh, obj.foot_pos{2}.x, ...
-                obj.foot_pos{1}.y, -obj.hip_height, 0, obj.cur_angles(2,:));
+            obj.cur_angles(1,:) = ikine(obj.dh, ...
+                obj.foot_pos{1}.x + obj.hip_width * sin(start_pose.q), ...
+                obj.foot_pos{1}.y - obj.hip_width * cos(start_pose.q), ...
+                -obj.hip_height, 0, obj.cur_angles(1,:));
+            obj.cur_angles(2,:) = ikine(obj.dh, ...
+                obj.foot_pos{2}.x - obj.hip_width * sin(start_pose.q), ...
+                obj.foot_pos{2}.y + obj.hip_width * cos(start_pose.q), ...
+                -obj.hip_height, 0, obj.cur_angles(2,:));
         end
         
         function angles = next(obj)
@@ -147,7 +167,7 @@ classdef Command < handle
         %   Angles = [2 x 6]
         %       The 12 angles corresponding to the current desired angular
         %       position.
-            obj.actions.next();
+            action = obj.actions.next();
             footstep = obj.footsteps.next();
             %TODO Figure out how to remove if statement to reduce repistion
             if footstep.side == Footsteps.Foot.Left && ...
@@ -194,11 +214,29 @@ classdef Command < handle
             ftl = obj.foot_traj_l.next();
             ftr = obj.foot_traj_r.next();
             bp = obj.body_traj.next();
-            obj.cur_angles(1,:) = ikine(obj.dh, ftl.x - bp.x, -bp.y, ...
-                ftl.z - obj.hip_height, 0, obj.cur_angles(1,:) ...
+            
+            % Transform from world frame to body frame
+            abq = action.q + bp.q;
+            lx = ftl.x - bp.x + obj.hip_width * sin(abq);
+            ly = ftl.y - bp.y - obj.hip_width * cos(abq);
+            rx = ftr.x - bp.x - obj.hip_width * sin(abq);
+            ry = ftr.y - bp.y + obj.hip_width * cos(abq);
+            lr = sqrt(lx^2 + ly^2);
+            rr = sqrt(rx^2 + ry^2);
+            lq = atan2(ly, lx) - abq;
+            rq = atan2(ry, rx) - abq;
+            
+            obj.cur_angles(1,:) = ikine(obj.dh, ...
+                lr * cos(lq), lr * sin(lq), ...
+                ftl.z - obj.hip_height, ...
+                mod(ftl.q - bp.q + pi, 2*pi) - pi, ...
+                obj.cur_angles(1,:) ...
             );
-            obj.cur_angles(2,:) = ikine(obj.dh, ftr.x - bp.x, -bp.y, ...
-                ftr.z - obj.hip_height, 0, obj.cur_angles(2,:) ...
+            obj.cur_angles(2,:) = ikine(obj.dh, ...
+                rr * cos(rq), rr * sin(rq), ...
+                ftr.z - obj.hip_height, ...
+                mod(ftr.q - bp.q + pi, 2*pi) - pi, ...
+                obj.cur_angles(2,:) ...
             );
             angles = obj.cur_angles;
         end

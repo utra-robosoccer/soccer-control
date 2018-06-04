@@ -34,6 +34,8 @@ function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_fo
         Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
         Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
         Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
+        Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0); Footsteps.Footstep(0,0,0,Footsteps.Foot.Left,0);
     };
     footsteps{1} = cur_foot; footsteps{2} = next_foot;
 
@@ -49,7 +51,7 @@ function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_fo
         %Find normal, and flip the direction depending on step side
         normalv = [-delta_y, delta_x];
         next_side = footsteps{i}.side;
-        if xor(next_side == Footsteps.Foot.Right, ...
+        if xor(next_side == Footsteps.Foot.Left, ...
                 action.label == Command.ActionLabel.Backward)
             normalv = -normalv;
         end
@@ -58,6 +60,9 @@ function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_fo
         next_step = [x_m y_m] - normalv/norm(normalv) * step_width;
         %Angle q of the nextfootstep
         next_q = atan2(delta_y, delta_x);
+        if action.label == Command.ActionLabel.Backward
+            next_q = mod(next_q + pi, 2 * pi);
+        end
 
         footsteps{i+2}.x = next_step(1);
         footsteps{i+2}.y = next_step(2);

@@ -48,8 +48,17 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
         %
         %   HEIGHT = [1 x 1]
         %       The peak height during mid-swing of the cycle
+
+            %Ensure continuous rotations
+            iq = mod(prev_pos.q, 2*pi); fq = mod(next_pos.q, 2*pi);
+            if abs(fq - iq) > pi
+                if abs(fq) > abs(iq)
+                    fq = fq - 2 * pi;
+                else
+                    iq = iq - 2 * pi;
+                end
+            end
         
-        % TODO Modify for three dimensional trajectories
             obj = Trajectories.Trajectory();
             obj.duration = duration;
             obj.data = {
@@ -60,7 +69,7 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
                 Trajectories.BezierTrajectory(duration, ...
                     0, 0, 0, 0, height);
                 Trajectories.BezierTrajectory(duration, ...
-                    prev_pos.q, next_pos.q, -prev_speed.q, -next_speed.q);
+                    iq, fq, -prev_speed.q, -next_speed.q);
                 Trajectories.BezierTrajectory(duration, ...
                     prev_pos.v, next_pos.v, -prev_speed.v, -next_speed.v)
             };
@@ -89,12 +98,9 @@ classdef Trajectory < Trajectories.GeneralizedTrajectory
                     prev_pose.v*cos(prev_pose.q), next_pose.v*cos(next_pose.q));
                 Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
                     prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
-                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
-                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
-                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
-                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q));
-                Trajectories.BezierTrajectory(duration, prev_pose.y, next_pose.y, ...
-                    prev_pose.v*sin(prev_pose.q), next_pose.v*sin(next_pose.q))
+                Trajectories.BezierTrajectory(duration, prev_pose.z, next_pose.z, 0, 0);
+                Trajectories.BezierTrajectory(duration, prev_pose.q, next_pose.q, 0, 0);
+                Trajectories.BezierTrajectory(duration, prev_pose.v, next_pose.v, 0, 0)
             };
         end
     end
