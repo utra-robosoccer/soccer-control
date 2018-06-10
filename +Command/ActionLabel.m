@@ -7,6 +7,7 @@ classdef ActionLabel < uint8
         Backward (1)
         Strafe (2)
         Kick (3)
+        Turn (4)
     end
     
 end
