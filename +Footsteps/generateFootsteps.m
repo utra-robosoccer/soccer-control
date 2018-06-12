@@ -1,4 +1,4 @@
-function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_foot, cur_foot, step_width)
+function [footsteps, n_steps] = generateFootsteps(obj, action, step_duration, next_foot, cur_foot, step_width)
 %GENERATEFOOTSTEPS produces footsteps along a body path, Following very out
 %of date
 %   [FOOTSTEPS, N_STEPS] = GENERATEFOOTSTEPS(PATH, NEXT_FOOT, CUR_FOOT)
@@ -25,7 +25,7 @@ function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_fo
 %   N_STEPS = [1 x 1]
 %       Number of calculated steps
 
-%TODO: Major Cleanup and port to Footstep. Generate one at a time option?
+%TODO: Major Cleanup and port to Footstep (Command?). Generate one at a time option?
 % should be based around trajectory at point, with offset
 
     n_steps = ceil(action.path.data{1}.duration/step_duration);
@@ -122,6 +122,15 @@ function [footsteps, n_steps] = generateFootsteps(action, step_duration, next_fo
             footsteps{i+2}.q = next_q;
             footsteps{i+2}.side = next_side;
             footsteps{i+2}.duration = step_duration;
+        end
+    else
+        n_steps = ceil(action.path.data{1}.duration/obj.swing_time);
+        for i = 1:n_steps
+            footsteps{i+2}.x = footsteps{i}.x;
+            footsteps{i+2}.y = footsteps{i}.y;
+            footsteps{i+2}.q = footsteps{i}.q;
+            footsteps{i+2}.side = footsteps{i}.side;
+            footsteps{i+2}.duration = obj.swing_time;
         end
     end
 end

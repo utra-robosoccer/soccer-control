@@ -6,8 +6,11 @@ classdef ActionLabel < uint8
         Forward (0)
         Backward (1)
         Strafe (2)
-        Kick (3)
-        Turn (4)
+        Turn (3)
+        Kick (4)
+        Rest (5)
+        PrepareLeft(6)
+        PrepareRight(7)
     end
     
 end
