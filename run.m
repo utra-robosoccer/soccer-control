@@ -15,7 +15,7 @@ mid1_pose = Pose(0.1, 0, 0, 0, 0.04);
 top_pose = Pose(0.4, 0.2, 0, 0, 0.04);
 bot_pose = Pose(0.4, -0.2, 0, -pi, 0.04);
 mid2_pose = Pose(0.1, 0, 0, -pi, 0.04);
-end_pose = Pose(0, 0, 0, 0, 0.0);
+end_pose = Pose(0.1, 0, 0, 0, 0.0);
 command = Command.Command(start_pose);
 q0_left = command.cur_angles(1,:);
 q0_right = command.cur_angles(2,:);
@@ -24,7 +24,8 @@ command.append(Command.ActionLabel.Forward, mid1_pose, 2);
 command.append(Command.ActionLabel.Strafe, top_pose, 5);
 command.append(Command.ActionLabel.Forward, bot_pose, 7);
 command.append(Command.ActionLabel.Forward, mid2_pose, 5);
-command.append(Command.ActionLabel.Turn, end_pose, 2);
+command.append(Command.ActionLabel.Turn, end_pose, 3);
+command.append(Command.ActionLabel.FixStance, end_pose, 1);
 command.append(Command.ActionLabel.Rest, end_pose, 0.5);
 angles = zeros(12, 2500);
 for i = 1:2500

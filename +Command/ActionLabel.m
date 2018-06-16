@@ -11,6 +11,7 @@ classdef ActionLabel < uint8
         Rest (5)
         PrepareLeft(6)
         PrepareRight(7)
+        FixStance (8)
     end
     
 end

@@ -98,11 +98,16 @@ function [footsteps, n_steps] = generateFootsteps(obj, action, step_duration, ne
             footsteps{i+2}.side = next_side;
             footsteps{i+2}.duration = step_duration;
         end
-    elseif action.label == Command.ActionLabel.Turn
+    elseif action.label == Command.ActionLabel.Turn || ...
+            action.label == Command.ActionLabel.FixStance
         % Find how much turn is needed
         init_pose = action.path.positionAtTime(0);
         fin_pose = action.path.positionAtTime(action.duration);
-        dq = getTurnSpeed(init_pose, fin_pose, n_steps);
+        if action.label == Command.ActionLabel.Turn 
+            dq = getTurnSpeed(init_pose, fin_pose, n_steps);
+        else
+            dq = 0;
+        end
         
         for i = 1:n_steps
             % Body position
@@ -123,7 +128,7 @@ function [footsteps, n_steps] = generateFootsteps(obj, action, step_duration, ne
             footsteps{i+2}.side = next_side;
             footsteps{i+2}.duration = step_duration;
         end
-    else
+    else % Keep feet as they are
         n_steps = ceil(action.path.data{1}.duration/obj.swing_time);
         for i = 1:n_steps
             footsteps{i+2}.x = footsteps{i}.x;

@@ -138,12 +138,7 @@ classdef Command < handle
                 obj.actions, obj.foot_pos{1}, obj.foot_pos{2}, 0, 0, 0));
             obj.foot_traj_r = Trajectories.LiveQueue(Trajectories.FootCycle(...
                 obj.actions, obj.foot_pos{1}, obj.foot_pos{2}, 0, 0, 0));
-            centered_pose = obj.foot_pos{1} + obj.foot_pos{2};
-            centered_pose.x = centered_pose.x / 2;
-            centered_pose.y = centered_pose.y / 2;
-            centered_pose.z = centered_pose.z / 2;
-            centered_pose.q = centered_pose.q / 2;
-            centered_pose.v = centered_pose.v / 2;
+            centered_pose = Pose.centeredPose(obj.foot_pos{1}, obj.foot_pos{2});
             obj.body_traj = Trajectories.LiveQueue(obj.buildBodyTraj(...
                 0, centered_pose, centered_pose, 0));
             
@@ -176,6 +171,7 @@ classdef Command < handle
         %   Angles = [2 x 6]
         %       The 12 angles corresponding to the current desired angular
         %       position.
+            obj.idx = obj.idx + 1;
             action = obj.actions.next();
             footstep = obj.footsteps.next();
             label = obj.actions.data{1}.label;
@@ -204,12 +200,7 @@ classdef Command < handle
                         obj.foot_pos{2}, obj.swing_time ...
                     ));
                 elseif label == Command.ActionLabel.Rest
-                    centered_pose = obj.foot_pos{1} + obj.foot_pos{2};
-                    centered_pose.x = centered_pose.x / 2;
-                    centered_pose.y = centered_pose.y / 2;
-                    centered_pose.z = centered_pose.z / 2;
-                    centered_pose.q = centered_pose.q / 2;
-                    centered_pose.v = centered_pose.v / 2;
+                    centered_pose = Pose.centeredPose(obj.foot_pos{1}, obj.foot_pos{2});
                     obj.body_traj.append(obj.buildBodyTraj( ...
                         0, obj.body_traj.positionAtTime(0) + action, ...
                         centered_pose, obj.swing_time ...
