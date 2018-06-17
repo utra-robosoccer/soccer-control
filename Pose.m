@@ -69,7 +69,6 @@ classdef Pose < handle
             r = obj1 + -obj2;
         end
         
-        
         function t = isobject(obj)
             t = true;
         end

@@ -1,3 +1,4 @@
+warning("The model is currently not build worthy");
 try
     rmdir codegen s
 end
