@@ -1,39 +1,29 @@
-classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
-%BEZIERTRAJECTORY Defines a general purpose 1D bezier trajectory
+classdef LinearTrajectory < Trajectories.GeneralizedTrajectory
+%LINEARTRAJECTORY Defines a general purpose linear inerpolated trajectory
     
     properties
-        order = 0;
-        parameters = [];
-        cur_time = 0.0;
-        secant_size = 0.001;
+        start_pos = 0;
+        start_vel = 0;
         end_pos = 0;
         end_vel = 0;
     end
     
     methods
-        function obj = BezierTrajectory(duration, varargin)
-        %BEZIERTRAJECTORY creates a bezier trajectory between points
-        %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL)
-        %    OBJ = BEZIERTRAJECTORY(DURATION, INI_POS, FIN_POS, INI_VEL, FIN_VEL, HEIGHT)
-        %
-        %   Produces a one-dimensional Bezier trajectory based on the
-        %   provided boundary conditions. Currently supports third and
-        %   fourth order Bezier curves.
+        function obj = BezierTrajectory(duration, start_pos, end_pos, start_vel, end_vel)
+        %LINEARTRAJECTORY creates a linear trajectory between points
+        %    OBJ = BEZIERTRAJECTORY(DURATION, START_POS, END_POS, START_VEL, END_VEL)
         %
         %
-        %   Arguments
+        %    Arguments
         %
-        %   DURATION = [1 x 1]
+        %    DURATION = [1 x 1]
         %       The time to move between the two positions
         %
-        %   PREV_POS, NEXT_POS = [1 x 1]
+        %    START_POS, END_POS = [1 x 1]
         %       The starting and ending positions of the foot in the x-axis
         %
-        %   PREV_SPEED, NEXT_SPEED = [1 x 1]
+        %    START_VEL, END_VEL = [1 x 1]
         %       The starting and ending speeds of the foot in the x-axis
-        %
-        %   HEIGHT = [1 x 1]
-        %       The peak height during mid-swing of the cycle
         
             if nargin > 0
                 obj.order = length(varargin) - 1;
@@ -80,19 +70,6 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
             %   X = [1 x 1]
             %       The position at time t
             
-            x = 0;
-            if t >= obj.duration
-                % Linear extrapolation of the position
-                x = obj.end_pos + obj.end_vel * (t - obj.duration);
-                return
-            end
-            
-            % Evaluate the Bezier function per parameter
-            for i = 0:obj.order
-                x = x + obj.parameters(i+1) * ...
-                (obj.duration - t)^(obj.order-i) * t^i;
-            end
-            x = x / obj.duration^obj.order;
         end
         
         function v = speedAtTime(obj, t)            
@@ -119,9 +96,9 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
                 v = obj.end_vel;
                 return
             end
-            tp = t + obj.secant_size;
+            tp = min(t + obj.secant_size, obj.duration);
             tm = max(t - obj.secant_size, 0);
-            v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))/(tp - tm);
+            v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
         end
     end
 end

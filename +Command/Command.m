@@ -4,6 +4,7 @@ classdef Command < handle
     properties
         % High-level actions and idealized path
         actions
+        prepared_side = Footsteps.Foot.Left;
         
         % Body physical parameters
         hip_height = 0.16;
@@ -37,9 +38,23 @@ classdef Command < handle
         foot_traj_l
         foot_traj_r
         body_traj 
+        
+        % Low level stuff
+        secant_size = 0.001;
+        idx = 0
     end
     
     methods (Hidden)
+        
+        function label = getCurrentLabel(obj)
+            if obj.actions.transitions(1) - obj.actions.current_time > ...
+                    obj.actions.increment - 1e-5
+                label = obj.actions.data{1}.label;
+            else
+                label = obj.actions.data{2}.label;
+            end
+        end
+        
         %TODO this is not the right place for this function
         function traj = buildBodyTraj(obj, init_time, ...
                 init_step, fin_step, duration)
@@ -103,6 +118,78 @@ classdef Command < handle
             };
             traj.duration = duration;
         end
+        
+        function generateNextFootstep(obj)
+        %GENERATENEXTFOOTSTEP produces the next footstep along the path
+        %   GENERATENEXTFOOTSTEPS(OBJ)
+
+            step_duration = obj.cycle_time / 2;
+            step_width = obj.hip_width;
+            init_pose = obj.actions.positionAtTime(0);
+            next_pose = obj.actions.positionAtTime(obj.cycle_time / 2);
+            label = obj.getCurrentLabel();
+            
+            if label == Command.ActionLabel.PrepareLeft || ...
+                    obj.footsteps.positionAtTime(0).side == Footsteps.Foot.Right
+                last_step = obj.foot_pos{1};
+            else
+                last_step = obj.foot_pos{2};
+            end
+            
+            if label == Command.ActionLabel.Forward || ...
+                    label == Command.ActionLabel.Backward
+                ninc_pose = obj.actions.positionAtTime(obj.cycle_time / 2 + obj.secant_size);
+                delt_pose = ninc_pose - next_pose;
+                %Find normal, and flip the direction depending on step side
+                normalv = [-delt_pose.y, delt_pose.x];
+                if xor(last_step.side == Footsteps.Foot.Left, ...
+                        label == Command.ActionLabel.Backward)
+                    normalv = -normalv;
+                end
+
+                %Find position of next footstep based on normal and d
+                next_step = [next_pose.x next_pose.y] ...
+                    - normalv/norm(normalv) * step_width;
+                %Angle q of the nextfootstep
+                next_q = atan2(delt_pose.y, delt_pose.x);
+                if label == Command.ActionLabel.Backward
+                    next_q = mod(next_q + pi, 2 * pi);
+                end
+            elseif label == Command.ActionLabel.Strafe
+                next_q = next_pose.q;
+
+                % Calculate the footposition (offset)
+                normalv = [-sin(next_q) cos(next_q)];
+                if last_step.side == Footsteps.Foot.Left
+                    normalv = -normalv;
+                end
+                next_step = [next_pose.x next_pose.y] ...
+                    - normalv/norm(normalv) * step_width;
+                
+            elseif label == Command.ActionLabel.Turn || ...
+                    label == Command.ActionLabel.FixStance
+                next_q = next_pose.q;
+
+                % Calculate the footposition (offset)
+                normalv = [-sin(next_q) cos(next_q)];
+                if last_step.side == Footsteps.Foot.Left
+                    normalv = -normalv;
+                end
+                next_step = [init_pose.x init_pose.y] - normalv/norm(normalv) * step_width;
+                
+            else % Keep feet as they are
+                next_step = [last_step.x, last_step.y];
+                next_q = last_step.q;
+                step_duration = obj.swing_time;
+            end
+            
+
+            % Create the footstep
+            footstep = Footsteps.Footstep(next_step(1), next_step(2), ...
+                next_q, last_step.side, step_duration);
+            obj.footsteps.append(footstep);
+        end
+        
     end
     
     methods
@@ -135,8 +222,9 @@ classdef Command < handle
                 obj.actions, obj.foot_pos{1}, obj.foot_pos{2}, 0, 0, 0));
             obj.foot_traj_r = Trajectories.LiveQueue(Trajectories.FootCycle(...
                 obj.actions, obj.foot_pos{1}, obj.foot_pos{2}, 0, 0, 0));
+            centered_pose = Pose.centeredPose(obj.foot_pos{1}, obj.foot_pos{2});
             obj.body_traj = Trajectories.LiveQueue(obj.buildBodyTraj(...
-                0, obj.foot_pos{1}, obj.foot_pos{2}, 0));
+                0, centered_pose, centered_pose, 0));
             
             % Determines the initial joint angle of the robot
             %TODO should not depend on footstep position
@@ -167,10 +255,47 @@ classdef Command < handle
         %   Angles = [2 x 6]
         %       The 12 angles corresponding to the current desired angular
         %       position.
-            action = obj.actions.next();
+            obj.idx = obj.idx + 1;
+            
+            if obj.footsteps.isempty() && ~obj.actions.isempty()
+                obj.generateNextFootstep();
+            end
             footstep = obj.footsteps.next();
+            action = obj.actions.next();
+            label = obj.getCurrentLabel();
+            if (label == Command.ActionLabel.PrepareLeft || ...
+                    label == Command.ActionLabel.PrepareRight || ...
+                    label == Command.ActionLabel.Rest) ... 
+                    && obj.body_traj.isempty()
+                obj.foot_traj_l.append(Trajectories.FootCycle( ...
+                    obj.actions, obj.foot_pos{1}, obj.foot_pos{1}, ...
+                    0, obj.swing_time, obj.swing_time ...
+                ));
+                obj.foot_traj_r.append(Trajectories.FootCycle( ...
+                    obj.actions, obj.foot_pos{2}, obj.foot_pos{2}, ...
+                    0, obj.swing_time, obj.swing_time ...
+                ));
+                if label == Command.ActionLabel.PrepareLeft
+                    obj.prepared_side = Footsteps.Foot.Left;
+                    obj.body_traj.append(obj.buildBodyTraj( ...
+                        0, obj.body_traj.positionAtTime(0), ...
+                        obj.foot_pos{1}, obj.swing_time ...
+                    ));
+                elseif label == Command.ActionLabel.PrepareRight
+                    obj.prepared_side = Footsteps.Foot.Right;
+                    obj.body_traj.append(obj.buildBodyTraj( ...
+                        0, obj.body_traj.positionAtTime(0), ...
+                        obj.foot_pos{2}, obj.swing_time ...
+                    ));
+                elseif label == Command.ActionLabel.Rest
+                    centered_pose = Pose.centeredPose(obj.foot_pos{1}, obj.foot_pos{2});
+                    obj.body_traj.append(obj.buildBodyTraj( ...
+                        0, obj.body_traj.positionAtTime(0) + action, ...
+                        centered_pose, obj.swing_time ...
+                    ));
+                end
             %TODO Figure out how to remove if statement to reduce repistion
-            if footstep.side == Footsteps.Foot.Left && ...
+            elseif footstep.side == Footsteps.Foot.Left && ...
                     footstep ~= obj.foot_pos{1}
                 % Build new trajectories for feet to reach next footstep
                 obj.foot_traj_l.append(Trajectories.FootCycle( ...
@@ -271,24 +396,6 @@ classdef Command < handle
             end
             obj.body_pose = goal;
             obj.actions.append(action);
-            
-            if ~isempty(obj.footsteps)
-                [new_footsteps, n_steps] = Footsteps.generateFootsteps(...
-                    action, obj.cycle_time/2, ...
-                    obj.footsteps.data{obj.footsteps.length}, ...
-                    obj.footsteps.data{obj.footsteps.length - 1}, ...
-                    obj.hip_width ...
-                );
-            else
-                [new_footsteps, n_steps] = Footsteps.generateFootsteps(...
-                    action, obj.cycle_time/2, ...
-                    obj.foot_pos{1}, obj.foot_pos{2}, obj.hip_width ...
-                );
-            end
-            %TODO MAJOR FIX associated with generate footsteps
-            for i = 3:(n_steps + 2)
-                obj.footsteps.append(new_footsteps{i});
-            end
         end
     end
     

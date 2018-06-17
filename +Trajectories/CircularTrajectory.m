@@ -90,9 +90,9 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
             % Evaluate the Bezier function per parameter
             for i = 0:obj.order
                 x = x + obj.parameters(i+1) * ...
-                (obj.duration - t)^(obj.order-i) * t^i;
+                (obj.duration - t).^(obj.order-i) .* t.^i;
             end
-            x = x / obj.duration^obj.order;
+            x = x ./ obj.duration^obj.order;
         end
         
         function v = speedAtTime(obj, t)            
@@ -119,9 +119,9 @@ classdef BezierTrajectory < Trajectories.GeneralizedTrajectory
                 v = obj.end_vel;
                 return
             end
-            tp = t + obj.secant_size;
+            tp = min(t + obj.secant_size, obj.duration);
             tm = max(t - obj.secant_size, 0);
-            v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))/(tp - tm);
+            v = (obj.positionAtTime(tp) - obj.positionAtTime(tm))./(tp - tm);
         end
     end
 end

@@ -23,7 +23,7 @@ classdef LiveQueue < Trajectories.GeneralizedTrajectory
         %
         %   This is used to reduce the amount of data stored by
         %   removing data that has already passed.
-            while obj.current_time > obj.transitions(1)
+            while obj.current_time >= obj.transitions(1)
                 if obj.isempty
                     obj.current_time = 0;
                     break
