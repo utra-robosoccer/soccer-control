@@ -8,14 +8,14 @@ classdef Command < handle
         
         % Body physical parameters
         hip_height = 0.16;
-        hip_width = 0.042;
+        hip_width = 0.0315;
         dh = [
-            0.0250     -pi/2         0      pi/2
+            0.0280     -pi/2         0      pi/2
                  0      pi/2         0     -pi/2
-                 0         0    0.0890         0
-                 0         0    0.0825         0
+                 0         0    0.0930         0
+                 0         0    0.0827         0
                  0         0         0      pi/2
-                 0         0    0.0370         0
+                 0         0    0.0253         0
         ];
         
         % Movement timing parameters

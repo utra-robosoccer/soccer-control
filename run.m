@@ -1,13 +1,16 @@
 %% Initialization Parameters
 dh = [
-            0.0250     -pi/2         0      pi/2
-                 0      pi/2         0     -pi/2
-                 0         0    0.0890         0
-                 0         0    0.0825         0
-                 0         0         0      pi/2
-                 0         0    0.0370         0
-        ];
+    0.0280     -pi/2         0      pi/2
+         0      pi/2         0     -pi/2
+         0         0    0.0930         0
+         0         0    0.0827         0
+         0         0         0      pi/2
+         0         0    0.0253         0
+];
 body_height = 0.099 + 0.16;
+body.depth = 0.1305;
+body.height = 0.152;
+body.width = 0.145;
 
 %% Generate Angles
 start_pose = Pose(0, 0, 0, 0, 0.0);
@@ -47,6 +50,8 @@ in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
 in = in.setVariable('q0_right', q0_right, 'Workspace', 'biped_robot');
 in = in.setVariable('angles', angles_ts, 'Workspace', 'biped_robot');
 in = in.setVariable('init_body_height', body_height, 'Workspace', 'biped_robot');
+in = in.setVariable('hip_width', 0.063, 'Workspace', 'biped_robot');
+in = in.setVariable('body', body, 'Workspace', 'biped_robot');
 in = in.setVariable('init_angle', start_pose.q, 'Workspace', 'biped_robot');
 
 out = sim(in);
