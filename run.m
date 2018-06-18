@@ -29,21 +29,22 @@ command.append(Command.ActionLabel.Forward, bot_pose, 7);
 command.append(Command.ActionLabel.Forward, mid2_pose, 5);
 command.append(Command.ActionLabel.Turn, end_pose, 3);
 command.append(Command.ActionLabel.FixStance, end_pose, 1);
+command.append(Command.ActionLabel.Kick, end_pose, 1);
 command.append(Command.ActionLabel.Rest, end_pose, 0.5);
-angles = zeros(12, 2500);
-for i = 1:2500
+angles = zeros(12, 3000);
+for i = 1:3000
     cn = command.next();
     angles(:, i) = [cn(1, :), cn(2, :)]';
 end
-plot((1:2500), angles);
+plot((1:3000), angles);
 
 %% Simulate based on these angles
 load_system('biped_robot');
 in = Simulink.SimulationInput('biped_robot');
-in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(25));
+in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(30));
 in = in.setModelParameter('SimulationMode', 'Normal');
 
-angles_ts = timeseries(angles, (0:2499)*0.01);
+angles_ts = timeseries(angles, (0:2999)*0.01);
 
 in = in.setVariable('dh', dh, 'Workspace', 'biped_robot');
 in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
