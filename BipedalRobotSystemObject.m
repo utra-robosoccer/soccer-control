@@ -9,6 +9,7 @@ classdef BipedalRobotSystemObject < matlab.System
 
     properties(DiscreteState)
     end
+    
 
     % Pre-computed constants
     properties(Access = private)
@@ -18,7 +19,6 @@ classdef BipedalRobotSystemObject < matlab.System
         angleStep
         trigStatus
     end
-
     methods(Access = protected)
         function setupImpl(obj)
             start_pose = Pose(0, 0, 0, 0, 0.0);
@@ -28,7 +28,7 @@ classdef BipedalRobotSystemObject < matlab.System
             obj.trigStatus = 0;
         end
 
-        function [trajectories, status] = stepImpl(obj,waypoints, trigger)
+        function [trajectories, status] = stepImpl(obj, waypoints, trigger)
 
             [w, l] = size(waypoints);
             
@@ -47,18 +47,18 @@ classdef BipedalRobotSystemObject < matlab.System
                     end
 
                     for i = 1 : (w * 100 * 5)
-                        cn = obj.command.next();
-                        obj.angles(:, i) = [cn(1, :), cn(2, :)]';
+                         obj.command.next();
+%                          obj.angles(:, i) = [cn(1, :), cn(2, :)]';
                     end
                 end
             end
             
+            trajectories = zeros(1,12);
+            
             if obj.angleStep > 0
-                trajectories = obj.angles(:,1);
+                trajectories = obj.angles(:,1)';
                 obj.angles = [obj.angles(:,2:end), zeros(12,1)];
                 obj.angleStep = obj.angleStep - 1;
-            else
-                trajectories = zeros(12,1);
             end
             
             if obj.angleStep == 1 || obj.angleStep == 0
