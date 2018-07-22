@@ -13,30 +13,25 @@ body.height = 0.152;
 body.width = 0.145;
 
 %% Generate Angles
+
 start_pose = Pose(0, 0, 0, 0, 0.0);
 mid1_pose = Pose(0.1, 0, 0, 0, 0.04);
 top_pose = Pose(0.4, 0.2, 0, 0, 0.04);
 bot_pose = Pose(0.4, -0.2, 0, -pi, 0.04);
 mid2_pose = Pose(0.1, 0, 0, -pi, 0.04);
 end_pose = Pose(0.1, 0, 0, 0, 0.0);
-command = Command.Command(start_pose);
-q0_left = command.cur_angles(1,:);
-q0_right = command.cur_angles(2,:);
-command.append(Command.ActionLabel.PrepareLeft, start_pose, 0.5);
-command.append(Command.ActionLabel.Forward, mid1_pose, 2);
-command.append(Command.ActionLabel.Strafe, top_pose, 5);
-command.append(Command.ActionLabel.Forward, bot_pose, 7);
-command.append(Command.ActionLabel.Forward, mid2_pose, 5);
-command.append(Command.ActionLabel.Turn, end_pose, 3);
-command.append(Command.ActionLabel.FixStance, end_pose, 1);
-command.append(Command.ActionLabel.Kick, end_pose, 1);
-command.append(Command.ActionLabel.Rest, end_pose, 0.5);
-angles = zeros(12, 3000);
-for i = 1:3000
-    cn = command.next();
-    angles(:, i) = [cn(1, :), cn(2, :)]';
-end
-plot((1:3000), angles);
+
+poseActions{1} = PoseAction(start_pose, Command.ActionLabel.PrepareLeft, 0.5);
+poseActions{2} = PoseAction(mid1_pose, Command.ActionLabel.Forward, 2);
+poseActions{3} = PoseAction(top_pose, Command.ActionLabel.Strafe, 5);
+poseActions{4} = PoseAction(bot_pose, Command.ActionLabel.Forward, 7);
+poseActions{5} = PoseAction(mid2_pose, Command.ActionLabel.Forward, 5);
+poseActions{6} = PoseAction(end_pose, Command.ActionLabel.Turn, 3);
+poseActions{7} = PoseAction(end_pose, Command.ActionLabel.FixStance, 1);
+poseActions{8} = PoseAction(end_pose, Command.ActionLabel.Kick, 1);
+poseActions{9} = PoseAction(end_pose, Command.ActionLabel.Rest, 0.5);
+
+run(poseActions);
 
 %% Simulate based on these angles
 load_system('biped_robot');
