@@ -1,5 +1,8 @@
-function angles = run(poseActions)
+function [angles, q0_left, q0_right] = run(poseActions)
     command = Command.Command(poseActions{1}.Pose);
+    q0_left = command.cur_angles(1,:);
+    q0_right = command.cur_angles(2,:);
+    
     
     l = length(poseActions);
     totalDuration = 0;

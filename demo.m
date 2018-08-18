@@ -31,7 +31,7 @@ poseActions{7} = PoseAction(end_pose, Command.ActionLabel.FixStance, 1);
 poseActions{8} = PoseAction(end_pose, Command.ActionLabel.Kick, 1);
 poseActions{9} = PoseAction(end_pose, Command.ActionLabel.Rest, 0.5);
 
-run(poseActions);
+[angles, q0_left, q0_right] = run(poseActions);
 
 %% Simulate based on these angles
 load_system('biped_robot');
@@ -39,7 +39,7 @@ in = Simulink.SimulationInput('biped_robot');
 in = in.setModelParameter('StartTime', '0', 'StopTime', num2str(30));
 in = in.setModelParameter('SimulationMode', 'Normal');
 
-angles_ts = timeseries(angles, (0:2999)*0.01);
+angles_ts = timeseries(angles, (0:length(angles)-1)*0.01);
 
 in = in.setVariable('dh', dh, 'Workspace', 'biped_robot');
 in = in.setVariable('q0_left', q0_left, 'Workspace', 'biped_robot');
